@@ -1,7 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { IconActivity, IconBrain, IconSnowflake } from "@tabler/icons-react";
+import {
+  IconActivity,
+  IconSnowflake,
+  IconUsers,
+  IconMapPin,
+  IconSettings,
+} from "@tabler/icons-react";
 import { NavMain } from "@/components/nav-main";
 import {
   Sidebar,
@@ -27,14 +33,24 @@ const data = {
       icon: IconActivity,
     },
     {
-      title: "Snow Removal",
+      title: "Snow Reports",
       url: "/snow-removal",
       icon: IconSnowflake,
     },
     {
-      title: "AI Coach",
-      url: "/ai-coach",
-      icon: IconBrain,
+      title: "Team",
+      url: "/team",
+      icon: IconUsers,
+    },
+    {
+      title: "Sites",
+      url: "/sites",
+      icon: IconMapPin,
+    },
+    {
+      title: "Settings",
+      url: "/settings",
+      icon: IconSettings,
     },
   ],
 };
@@ -54,7 +70,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   className="text-base font-semibold"
                   style={{ fontFamily: "TrueLies" }}
                 >
-                  Precision
+                  SnowTracker
                 </span>
               </a>
             </SidebarMenuButton>

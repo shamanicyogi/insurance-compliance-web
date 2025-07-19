@@ -13,12 +13,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InvitationManager } from "@/components/invitation-manager";
+import { AppLayout } from "@/components/app-layout";
 
 interface Employee {
   id: string;
   employee_number: string;
   role: "owner" | "admin" | "manager" | "employee";
   user_id: string;
+  company_id: string;
   phone?: string;
   is_active: boolean;
   created_at: string;
@@ -124,139 +126,143 @@ export default function TeamPage() {
   const canManageTeam = ["owner", "admin"].includes(profile.employee.role);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Team Management</h1>
-          <p className="text-muted-foreground">
-            Manage your team members and invitations
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-muted-foreground" />
-          <span className="font-medium">{profile.companies.name}</span>
-        </div>
-      </div>
-
-      {/* Company Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Company Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <div className="text-2xl font-bold">{employees.length}</div>
-              <p className="text-xs text-muted-foreground">Team Members</p>
-            </div>
-            <div>
-              <div className="text-2xl font-bold">
-                {profile.companies.max_employees}
-              </div>
-              <p className="text-xs text-muted-foreground">Max Employees</p>
-            </div>
-            <div>
-              <Badge variant="outline" className="w-fit">
-                {profile.companies.subscription_plan}
-              </Badge>
-              <p className="text-xs text-muted-foreground mt-1">Plan</p>
-            </div>
+    <AppLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Team Management
+            </h1>
+            <p className="text-muted-foreground">
+              Manage your team members and invitations
+            </p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-muted-foreground" />
+            <span className="font-medium">{profile.companies.name}</span>
+          </div>
+        </div>
 
-      {/* Team Members */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Team Members ({employees.length})
-          </CardTitle>
-          <CardDescription>
-            Current team members and their roles
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {employees.length === 0 ? (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
-                No team members yet
-              </h3>
-              <p className="text-muted-foreground">
-                Invite employees to start building your team
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {employees.map((employee) => (
-                <div
-                  key={employee.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    {getRoleIcon(employee.role)}
-                    <div>
-                      <div className="font-medium">
-                        {employee.user_id === session?.user?.id
-                          ? "You"
-                          : `Employee ${employee.employee_number}`}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {employee.phone || "No phone number"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={getRoleBadgeVariant(employee.role)}>
-                      {employee.role}
-                    </Badge>
-                    {employee.is_active ? (
-                      <Badge variant="default" className="bg-green-500">
-                        Active
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">Inactive</Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Invitation Manager - Only for admins/owners */}
-      {canManageTeam && (
-        <InvitationManager companyId={profile.employee.company_id} />
-      )}
-
-      {/* Access Denied for Employees */}
-      {!canManageTeam && (
+        {/* Company Info */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Team Invitations
+              <Building2 className="h-5 w-5" />
+              Company Overview
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
-                Admin Access Required
-              </h3>
-              <p className="text-muted-foreground">
-                Only company owners and admins can manage team invitations.
-              </p>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <div className="text-2xl font-bold">{employees.length}</div>
+                <p className="text-xs text-muted-foreground">Team Members</p>
+              </div>
+              <div>
+                <div className="text-2xl font-bold">
+                  {profile.companies.max_employees}
+                </div>
+                <p className="text-xs text-muted-foreground">Max Employees</p>
+              </div>
+              <div>
+                <Badge variant="outline" className="w-fit">
+                  {profile.companies.subscription_plan}
+                </Badge>
+                <p className="text-xs text-muted-foreground mt-1">Plan</p>
+              </div>
             </div>
           </CardContent>
         </Card>
-      )}
-    </div>
+
+        {/* Team Members */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Team Members ({employees.length})
+            </CardTitle>
+            <CardDescription>
+              Current team members and their roles
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {employees.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  No team members yet
+                </h3>
+                <p className="text-muted-foreground">
+                  Invite employees to start building your team
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {employees.map((employee) => (
+                  <div
+                    key={employee.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      {getRoleIcon(employee.role)}
+                      <div>
+                        <div className="font-medium">
+                          {employee.user_id === session?.user?.id
+                            ? "You"
+                            : `Employee ${employee.employee_number}`}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {employee.phone || "No phone number"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={getRoleBadgeVariant(employee.role)}>
+                        {employee.role}
+                      </Badge>
+                      {employee.is_active ? (
+                        <Badge variant="default" className="bg-green-500">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">Inactive</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Invitation Manager - Only for admins/owners */}
+        {canManageTeam && (
+          <InvitationManager companyId={profile.employee.company_id} />
+        )}
+
+        {/* Access Denied for Employees */}
+        {!canManageTeam && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Team Invitations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  Admin Access Required
+                </h3>
+                <p className="text-muted-foreground">
+                  Only company owners and admins can manage team invitations.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </AppLayout>
   );
 }

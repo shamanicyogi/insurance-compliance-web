@@ -5,17 +5,11 @@ import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { SiteHeader } from "@/components/site-header";
-import { DashboardDataProvider } from "@/components/providers/dashboard-data-provider";
 import TrialBanner from "@/components/trial-banner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileNavBar } from "@/components/mobile-nav-bar";
 import { ModalProvider, useModal } from "@/lib/contexts/modal-context";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { MealLogger } from "./meal-logger";
-import { WorkoutLogger } from "./workout-logger";
-import { JournalLog } from "./journal-log";
-import { SleepTracker } from "./sleep-tracker";
-import { HydrationTracker } from "./hydration-tracker";
 import { MobileViewProvider } from "@/lib/contexts/mobile-view-context";
 import { MobileViewManager } from "./mobile-view-manager";
 import { DialogTitle } from "@radix-ui/react-dialog";
@@ -39,7 +33,6 @@ function GlobalModals() {
           <VisuallyHidden>
             <DialogTitle>Log a Meal</DialogTitle>
           </VisuallyHidden>
-          <MealLogger />
         </DialogContent>
       </Dialog>
 
@@ -54,7 +47,6 @@ function GlobalModals() {
           <VisuallyHidden>
             <DialogTitle>Log a Workout</DialogTitle>
           </VisuallyHidden>
-          <WorkoutLogger />
         </DialogContent>
       </Dialog>
 
@@ -66,7 +58,6 @@ function GlobalModals() {
           <VisuallyHidden>
             <DialogTitle>Log Water Intake</DialogTitle>
           </VisuallyHidden>
-          <HydrationTracker />
         </DialogContent>
       </Dialog>
 
@@ -78,7 +69,6 @@ function GlobalModals() {
           <VisuallyHidden>
             <DialogTitle>Log a Journal Entry</DialogTitle>
           </VisuallyHidden>
-          <JournalLog />
         </DialogContent>
       </Dialog>
 
@@ -93,7 +83,6 @@ function GlobalModals() {
           <VisuallyHidden>
             <DialogTitle>Log Sleep</DialogTitle>
           </VisuallyHidden>
-          <SleepTracker />
         </DialogContent>
       </Dialog>
     </>
@@ -111,70 +100,38 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     // Show the tabbed dashboard view only on the dashboard page
     if (isDashboardPage) {
       return (
-        <DashboardDataProvider>
-          <ModalProvider>
-            <SubscriptionModalProvider>
-              <MobileViewProvider>
-                <SidebarProvider
-                  style={
-                    {
-                      "--sidebar-width": "calc(var(--spacing) * 72)",
-                      "--header-height": "calc(var(--spacing) * 12)",
-                    } as React.CSSProperties
-                  }
-                >
-                  <AppSidebar />
-                  <div className="relative flex flex-1 flex-col">
-                    <TrialBanner />
-                    <SiteHeader />
-                    <main className="pb-20">
-                      <div className="container">
-                        <MobileViewManager dashboard={children} />
-                      </div>
-                    </main>
-                    <GlobalModals />
-                    <MobileNavBar />
-                  </div>
-                </SidebarProvider>
-              </MobileViewProvider>
-            </SubscriptionModalProvider>
-          </ModalProvider>
-        </DashboardDataProvider>
+        <ModalProvider>
+          <SubscriptionModalProvider>
+            <MobileViewProvider>
+              <SidebarProvider
+                style={
+                  {
+                    "--sidebar-width": "calc(var(--spacing) * 72)",
+                    "--header-height": "calc(var(--spacing) * 12)",
+                  } as React.CSSProperties
+                }
+              >
+                <AppSidebar />
+                <div className="relative flex flex-1 flex-col">
+                  <TrialBanner />
+                  <SiteHeader />
+                  <main className="pb-20">
+                    <div className="container">
+                      <MobileViewManager dashboard={children} />
+                    </div>
+                  </main>
+                  <GlobalModals />
+                  <MobileNavBar />
+                </div>
+              </SidebarProvider>
+            </MobileViewProvider>
+          </SubscriptionModalProvider>
+        </ModalProvider>
       );
     }
 
     // Render a standard layout for all other mobile pages
     return (
-      <DashboardDataProvider>
-        <ModalProvider>
-          <SubscriptionModalProvider>
-            <SidebarProvider
-              style={
-                {
-                  "--sidebar-width": "calc(var(--spacing) * 72)",
-                  "--header-height": "calc(var(--spacing) * 12)",
-                } as React.CSSProperties
-              }
-            >
-              <AppSidebar />
-              <div className="relative flex flex-1 flex-col">
-                <TrialBanner />
-                <SiteHeader />
-                <main>
-                  <div className="container pt-4">{children}</div>
-                </main>
-                <GlobalModals />
-              </div>
-            </SidebarProvider>
-          </SubscriptionModalProvider>
-        </ModalProvider>
-      </DashboardDataProvider>
-    );
-  }
-
-  // Render the default desktop layout with a sidebar
-  return (
-    <DashboardDataProvider>
       <ModalProvider>
         <SubscriptionModalProvider>
           <SidebarProvider
@@ -185,16 +142,42 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               } as React.CSSProperties
             }
           >
-            <AppSidebar variant="inset" />
-            <SidebarInset>
+            <AppSidebar />
+            <div className="relative flex flex-1 flex-col">
               <TrialBanner />
               <SiteHeader />
-              <div className="container">{children}</div>
+              <main>
+                <div className="container pt-4">{children}</div>
+              </main>
               <GlobalModals />
-            </SidebarInset>
+            </div>
           </SidebarProvider>
         </SubscriptionModalProvider>
       </ModalProvider>
-    </DashboardDataProvider>
+    );
+  }
+
+  // Render the default desktop layout with a sidebar
+  return (
+    <ModalProvider>
+      <SubscriptionModalProvider>
+        <SidebarProvider
+          style={
+            {
+              "--sidebar-width": "calc(var(--spacing) * 72)",
+              "--header-height": "calc(var(--spacing) * 12)",
+            } as React.CSSProperties
+          }
+        >
+          <AppSidebar variant="inset" />
+          <SidebarInset>
+            <TrialBanner />
+            <SiteHeader />
+            <div className="container">{children}</div>
+            <GlobalModals />
+          </SidebarInset>
+        </SidebarProvider>
+      </SubscriptionModalProvider>
+    </ModalProvider>
   );
 }
