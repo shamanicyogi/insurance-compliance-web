@@ -3,3 +3,7 @@ import { SnowRemovalOnboardingWrapper } from "@/components/snow-removal-onboardi
 export default function SnowRemovalOnboardingPage() {
   return <SnowRemovalOnboardingWrapper />;
 }
+
+// TODO HERE -> SENDING EMAIL TO INVITED EMPLOYEE
+
+// resend config domain

@@ -8,13 +8,17 @@ import { useEffect } from "react";
 import Spinner from "@/components/spinner";
 import {
   CheckCircle,
-  Zap,
   Shield,
-  Smartphone,
-  BarChart3,
   Users,
+  ClipboardCheck,
+  Eye,
+  FileText,
   ArrowRight,
   Star,
+  TrendingUp,
+  Clock,
+  AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 
 export default function Home() {
@@ -41,7 +45,8 @@ export default function Home() {
       <header className="border-b px-6 py-4">
         <div className="container mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-            WebApp Starter
+            <Shield className="h-6 w-6 text-primary" />
+            SlipCheck
           </Link>
           <nav className="flex items-center space-x-4">
             <Link
@@ -66,20 +71,21 @@ export default function Home() {
             <div className="max-w-4xl mx-auto text-center space-y-8">
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-                  Build Amazing Web Apps{" "}
-                  <span className="text-primary">Faster</span>
+                  Insurance Compliance{" "}
+                  <span className="text-primary">Made Simple</span>
                 </h1>
                 <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-                  A complete Next.js starter template with authentication,
-                  payments, database, and modern UI components. Everything you
-                  need to launch your SaaS.
+                  Streamline insurance compliance and employee monitoring for
+                  your business. Ensure every job meets insurance requirements
+                  while providing employers with complete visibility and
+                  automated reporting.
                 </p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/signup">
                   <Button size="lg" className="px-8 py-4 text-lg">
-                    Get Started Free
+                    Start Free Trial
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
@@ -95,11 +101,15 @@ export default function Home() {
               <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>No credit card required</span>
+                  <span>No setup fees</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>Setup in minutes</span>
+                  <span>Insurance compliant</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Real-time monitoring</span>
                 </div>
               </div>
             </div>
@@ -111,56 +121,56 @@ export default function Home() {
           <div className="container mx-auto px-6">
             <div className="text-center space-y-4 mb-16">
               <h2 className="text-3xl md:text-4xl font-bold">
-                Everything You Need to Build Modern Web Apps
+                Everything You Need for Insurance Compliance
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Pre-built components, authentication, payments, and more. Focus
-                on your business logic.
+                Powerful tools that make compliance effortless for employees and
+                provide complete oversight for employers.
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div className="space-y-4 p-6 rounded-lg border">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <ClipboardCheck className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold">Compliance Tracking</h3>
+                <p className="text-muted-foreground">
+                  Ensure every job meets insurance requirements with automated
+                  compliance checks and real-time validation.
+                </p>
+              </div>
+
+              <div className="space-y-4 p-6 rounded-lg border">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Eye className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold">Employee Monitoring</h3>
+                <p className="text-muted-foreground">
+                  Complete visibility into employee activities with GPS
+                  tracking, time logs, and job progress monitoring.
+                </p>
+              </div>
+
+              <div className="space-y-4 p-6 rounded-lg border">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold">Automated Reports</h3>
+                <p className="text-muted-foreground">
+                  Generate comprehensive reports for insurance claims, audits,
+                  and management review automatically.
+                </p>
+              </div>
+
+              <div className="space-y-4 p-6 rounded-lg border">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                   <Shield className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold">Secure Authentication</h3>
+                <h3 className="text-xl font-semibold">Risk Management</h3>
                 <p className="text-muted-foreground">
-                  Built-in authentication with NextAuth.js, social logins, and
-                  user management.
-                </p>
-              </div>
-
-              <div className="space-y-4 p-6 rounded-lg border">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Zap className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold">Lightning Fast</h3>
-                <p className="text-muted-foreground">
-                  Next.js 15 with App Router, TypeScript, and optimized
-                  performance out of the box.
-                </p>
-              </div>
-
-              <div className="space-y-4 p-6 rounded-lg border">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold">Built-in Analytics</h3>
-                <p className="text-muted-foreground">
-                  Track user behavior and app performance with integrated
-                  analytics and monitoring.
-                </p>
-              </div>
-
-              <div className="space-y-4 p-6 rounded-lg border">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Smartphone className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold">Mobile Ready</h3>
-                <p className="text-muted-foreground">
-                  Responsive design with PWA support. Works beautifully on all
-                  devices.
+                  Identify and mitigate risks before they become claims with
+                  proactive monitoring and alerts.
                 </p>
               </div>
 
@@ -168,58 +178,80 @@ export default function Home() {
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                   <Users className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold">Stripe Payments</h3>
+                <h3 className="text-xl font-semibold">Team Management</h3>
                 <p className="text-muted-foreground">
-                  Complete payment integration with subscriptions, billing, and
-                  customer management.
+                  Manage employees, assign jobs, track performance, and ensure
+                  everyone follows compliance protocols.
                 </p>
               </div>
 
               <div className="space-y-4 p-6 rounded-lg border">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Star className="h-6 w-6 text-primary" />
+                  <BarChart3 className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold">Modern UI</h3>
+                <h3 className="text-xl font-semibold">Analytics Dashboard</h3>
                 <p className="text-muted-foreground">
-                  Beautiful components built with Radix UI and Tailwind CSS.
-                  Dark mode included.
+                  Comprehensive insights into compliance rates, employee
+                  performance, and operational efficiency.
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Tech Stack Section */}
+        {/* Benefits Section */}
         <section className="py-20 bg-muted/20">
           <div className="container mx-auto px-6">
             <div className="text-center space-y-4 mb-16">
               <h2 className="text-3xl md:text-4xl font-bold">
-                Built with Modern Technologies
+                Built for Modern Businesses
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Industry-standard tools and frameworks for reliability and
-                scalability.
+                Reduce liability, improve efficiency, and ensure compliance
+                across your entire operation.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {[
-                "Next.js 15",
-                "TypeScript",
-                "Tailwind CSS",
-                "Supabase",
-                "Stripe",
-                "NextAuth.js",
-                "Radix UI",
-                "React Query",
-              ].map((tech) => (
-                <div
-                  key={tech}
-                  className="text-center p-4 rounded-lg border bg-background"
-                >
-                  <h3 className="font-semibold">{tech}</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="text-center p-6 rounded-lg border bg-background space-y-4">
+                <div className="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center mx-auto">
+                  <TrendingUp className="h-8 w-8 text-green-600" />
                 </div>
-              ))}
+                <h3 className="text-xl font-semibold">Reduce Claims</h3>
+                <p className="text-muted-foreground">
+                  Prevent insurance claims with proactive compliance monitoring
+                </p>
+              </div>
+
+              <div className="text-center p-6 rounded-lg border bg-background space-y-4">
+                <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto">
+                  <Clock className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold">Save Time</h3>
+                <p className="text-muted-foreground">
+                  Automate compliance checks and reporting processes
+                </p>
+              </div>
+
+              <div className="text-center p-6 rounded-lg border bg-background space-y-4">
+                <div className="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mx-auto">
+                  <AlertTriangle className="h-8 w-8 text-purple-600" />
+                </div>
+                <h3 className="text-xl font-semibold">Mitigate Risk</h3>
+                <p className="text-muted-foreground">
+                  Early warning system for potential compliance issues
+                </p>
+              </div>
+
+              <div className="text-center p-6 rounded-lg border bg-background space-y-4">
+                <div className="w-16 h-16 bg-orange-100 rounded-lg flex items-center justify-center mx-auto">
+                  <Star className="h-8 w-8 text-orange-600" />
+                </div>
+                <h3 className="text-xl font-semibold">Improve Quality</h3>
+                <p className="text-muted-foreground">
+                  Ensure consistent, high-quality work across all jobs
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -229,11 +261,11 @@ export default function Home() {
           <div className="container mx-auto px-6 text-center">
             <div className="max-w-2xl mx-auto space-y-8">
               <h2 className="text-3xl md:text-4xl font-bold">
-                Ready to Build Your Next Project?
+                Ready to Transform Your Compliance?
               </h2>
               <p className="text-xl opacity-90">
-                Join developers who are building faster with our starter
-                template.
+                Join businesses who are reducing liability and improving
+                efficiency with SlipCheck&apos;s insurance compliance platform.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/signup">
@@ -242,10 +274,14 @@ export default function Home() {
                     variant="secondary"
                     className="px-8 py-4 text-lg"
                   >
-                    Start Building Today
+                    Start Free Trial Today
+                    <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
               </div>
+              <p className="text-sm opacity-75">
+                14-day free trial • No credit card required • Setup in minutes
+              </p>
             </div>
           </div>
         </section>
@@ -256,10 +292,13 @@ export default function Home() {
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-lg font-bold mb-4">WebApp Starter</h3>
+              <div className="flex items-center gap-2 font-bold text-lg mb-4">
+                <Shield className="h-5 w-5 text-primary" />
+                SlipCheck
+              </div>
               <p className="text-muted-foreground">
-                The complete Next.js starter template for building modern web
-                applications.
+                Insurance compliance and employee monitoring software that makes
+                life easier for both employees and employers.
               </p>
             </div>
             <div>
@@ -272,12 +311,12 @@ export default function Home() {
                 </li>
                 <li>
                   <Link href="#" className="hover:text-foreground">
-                    Documentation
+                    Pricing
                   </Link>
                 </li>
                 <li>
                   <Link href="#" className="hover:text-foreground">
-                    Examples
+                    Security
                   </Link>
                 </li>
               </ul>
@@ -312,19 +351,19 @@ export default function Home() {
                 </li>
                 <li>
                   <Link href="#" className="hover:text-foreground">
-                    Community
+                    Documentation
                   </Link>
                 </li>
                 <li>
                   <Link href="#" className="hover:text-foreground">
-                    GitHub
+                    API
                   </Link>
                 </li>
               </ul>
             </div>
           </div>
           <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-            <p>&copy; 2024 WebApp Starter. All rights reserved.</p>
+            <p>&copy; 2024 SlipCheck. All rights reserved.</p>
           </div>
         </div>
       </footer>

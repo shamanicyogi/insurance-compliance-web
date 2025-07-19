@@ -1,7 +1,7 @@
 {
-  "name": "WebApp Starter",
-  "short_name": "WebApp Starter",
-  "description": "A complete Next.js starter template with authentication, payments, and modern UI components",
+  "name": "SlipCheck - Insurance Compliance",
+  "short_name": "SlipCheck",
+  "description": "Insurance compliance and employee monitoring software for businesses",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -28,15 +28,18 @@
   "screenshots": [
     {
       "src": "/screenshots/desktop1.png",
-      "sizes": "1280x800",
+      "sizes": "1920x1080",
       "type": "image/png",
-      "form_factor": "wide"
+      "form_factor": "wide",
+      "label": "SlipCheck Dashboard - Desktop"
     },
     {
       "src": "/screenshots/mobile1.png",
       "sizes": "390x844",
       "type": "image/png",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "SlipCheck Mobile App"
     }
-  ]
+  ],
+  "categories": ["business", "productivity", "utilities"]
 }
