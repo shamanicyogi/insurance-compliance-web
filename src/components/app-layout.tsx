@@ -1,11 +1,11 @@
 "use client";
 
-import React from "react";
-import { usePathname } from "next/navigation";
+import { ReactNode } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { cn } from "@/lib/utils";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { SiteHeader } from "@/components/site-header";
-import TrialBanner from "@/components/trial-banner";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileNavBar } from "@/components/mobile-nav-bar";
 import { ModalProvider, useModal } from "@/lib/contexts/modal-context";
@@ -14,7 +14,6 @@ import { MobileViewProvider } from "@/lib/contexts/mobile-view-context";
 import { MobileViewManager } from "./mobile-view-manager";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
-import { SubscriptionModalProvider } from "@/lib/contexts/subscription-modal-context";
 
 // A component to render the modals, keeping the main layout clean
 function GlobalModals() {
@@ -28,156 +27,79 @@ function GlobalModals() {
       >
         <DialogContent
           className="bg-transparent p-0 border-0"
-          onOpenAutoFocus={(e) => e.preventDefault()}
+          style={{
+            maxWidth: "95vw",
+            maxHeight: "95vh",
+            width: "auto",
+            height: "auto",
+          }}
         >
           <VisuallyHidden>
-            <DialogTitle>Log a Meal</DialogTitle>
+            <DialogTitle>Log Meal</DialogTitle>
           </VisuallyHidden>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={isModalOpen("workout")}
-        onOpenChange={() => closeModal("workout")}
-      >
-        <DialogContent
-          className="bg-transparent p-0 border-0"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-        >
-          <VisuallyHidden>
-            <DialogTitle>Log a Workout</DialogTitle>
-          </VisuallyHidden>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={isModalOpen("water")}
-        onOpenChange={() => closeModal("water")}
-      >
-        <DialogContent className="bg-transparent p-0 border-0">
-          <VisuallyHidden>
-            <DialogTitle>Log Water Intake</DialogTitle>
-          </VisuallyHidden>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={isModalOpen("mood")}
-        onOpenChange={() => closeModal("mood")}
-      >
-        <DialogContent className="bg-transparent p-0 border-0">
-          <VisuallyHidden>
-            <DialogTitle>Log a Journal Entry</DialogTitle>
-          </VisuallyHidden>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={isModalOpen("sleep")}
-        onOpenChange={() => closeModal("sleep")}
-      >
-        <DialogContent
-          className="bg-transparent p-0 border-0"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-        >
-          <VisuallyHidden>
-            <DialogTitle>Log Sleep</DialogTitle>
-          </VisuallyHidden>
+          {/* Modal content will be set by the component that opens it */}
         </DialogContent>
       </Dialog>
     </>
   );
 }
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+interface AppLayoutProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function AppLayout({ children, className }: AppLayoutProps) {
   const isMobile = useIsMobile();
-  const pathname = usePathname();
+  const { data: session, status } = useSession();
+  const [mounted, setMounted] = useState(false);
 
-  const isDashboardPage = pathname === "/dashboard";
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  // Render a mobile-optimized layout
+  if (!mounted) {
+    return null; // Prevent hydration mismatch
+  }
+
+  if (status === "loading") {
+    return <div className="p-8">Loading...</div>;
+  }
+
+  if (!session) {
+    return <div className="p-8">Please sign in to continue.</div>;
+  }
+
   if (isMobile) {
-    // Show the tabbed dashboard view only on the dashboard page
-    if (isDashboardPage) {
-      return (
-        <ModalProvider>
-          <SubscriptionModalProvider>
-            <MobileViewProvider>
-              <SidebarProvider
-                style={
-                  {
-                    "--sidebar-width": "calc(var(--spacing) * 72)",
-                    "--header-height": "calc(var(--spacing) * 12)",
-                  } as React.CSSProperties
-                }
-              >
-                <AppSidebar />
-                <div className="relative flex flex-1 flex-col">
-                  <TrialBanner />
-                  <SiteHeader />
-                  <main className="pb-20">
-                    <div className="container">
-                      <MobileViewManager dashboard={children} />
-                    </div>
-                  </main>
-                  <GlobalModals />
-                  <MobileNavBar />
-                </div>
-              </SidebarProvider>
-            </MobileViewProvider>
-          </SubscriptionModalProvider>
-        </ModalProvider>
-      );
-    }
-
-    // Render a standard layout for all other mobile pages
     return (
-      <ModalProvider>
-        <SubscriptionModalProvider>
-          <SidebarProvider
-            style={
-              {
-                "--sidebar-width": "calc(var(--spacing) * 72)",
-                "--header-height": "calc(var(--spacing) * 12)",
-              } as React.CSSProperties
-            }
-          >
-            <AppSidebar />
-            <div className="relative flex flex-1 flex-col">
-              <TrialBanner />
-              <SiteHeader />
-              <main>
-                <div className="container pt-4">{children}</div>
+      <MobileViewProvider>
+        <ModalProvider>
+          <div className="flex h-screen flex-col bg-sidebar">
+            <div className="flex-1 flex flex-col min-h-0">
+              <main className="flex-1 overflow-auto bg-background">
+                <div className={cn("p-4", className)}>{children}</div>
               </main>
+              <MobileNavBar />
               <GlobalModals />
             </div>
-          </SidebarProvider>
-        </SubscriptionModalProvider>
-      </ModalProvider>
+            <MobileViewManager dashboard={<div>Dashboard</div>} />
+          </div>
+        </ModalProvider>
+      </MobileViewProvider>
     );
   }
 
-  // Render the default desktop layout with a sidebar
   return (
     <ModalProvider>
-      <SubscriptionModalProvider>
-        <SidebarProvider
-          style={
-            {
-              "--sidebar-width": "calc(var(--spacing) * 72)",
-              "--header-height": "calc(var(--spacing) * 12)",
-            } as React.CSSProperties
-          }
-        >
-          <AppSidebar variant="inset" />
-          <SidebarInset>
-            <TrialBanner />
-            <SiteHeader />
-            <div className="container">{children}</div>
-            <GlobalModals />
-          </SidebarInset>
-        </SidebarProvider>
-      </SubscriptionModalProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <main className="flex-1 overflow-auto bg-background p-8">
+            <div className={cn("mx-auto", className)}>{children}</div>
+          </main>
+          <GlobalModals />
+        </SidebarInset>
+      </SidebarProvider>
     </ModalProvider>
   );
 }

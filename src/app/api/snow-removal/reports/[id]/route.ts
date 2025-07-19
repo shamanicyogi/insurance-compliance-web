@@ -10,12 +10,17 @@ import type { UpdateReportRequest } from "@/types/snow-removal";
  * GET /api/snow-removal/reports/[id]
  * Fetch a specific report by ID
  */
-async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { id: reportId } = await params;
 
     // Get employee record
     const { data: employee, error: employeeError } = await supabase
@@ -42,7 +47,7 @@ async function GET(req: NextRequest, { params }: { params: { id: string } }) {
         employees!inner(employee_number)
       `
       )
-      .eq("id", params.id)
+      .eq("id", reportId)
       .eq("employee_id", employee.id)
       .single();
 
@@ -64,12 +69,17 @@ async function GET(req: NextRequest, { params }: { params: { id: string } }) {
  * PUT /api/snow-removal/reports/[id]
  * Update a specific report (only if it's a draft)
  */
-async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { id: reportId } = await params;
 
     const updateData: UpdateReportRequest = await req.json();
 
@@ -92,7 +102,7 @@ async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
     const { data: existingReport, error: fetchError } = await supabase
       .from("snow_removal_reports")
       .select("is_draft, submitted_at")
-      .eq("id", params.id)
+      .eq("id", reportId)
       .eq("employee_id", employee.id)
       .single();
 
@@ -125,7 +135,7 @@ async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
     const { data: report, error } = await supabase
       .from("snow_removal_reports")
       .update(finalUpdateData)
-      .eq("id", params.id)
+      .eq("id", reportId)
       .eq("employee_id", employee.id)
       .select()
       .single();
@@ -148,13 +158,15 @@ async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
  */
 async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { id: reportId } = await params;
 
     // Get employee record
     const { data: employee, error: employeeError } = await supabase
@@ -175,7 +187,7 @@ async function DELETE(
     const { data: existingReport, error: fetchError } = await supabase
       .from("snow_removal_reports")
       .select("is_draft, submitted_at")
-      .eq("id", params.id)
+      .eq("id", reportId)
       .eq("employee_id", employee.id)
       .single();
 
@@ -195,7 +207,7 @@ async function DELETE(
     const { error } = await supabase
       .from("snow_removal_reports")
       .delete()
-      .eq("id", params.id)
+      .eq("id", reportId)
       .eq("employee_id", employee.id);
 
     if (error) throw error;

@@ -8,19 +8,24 @@ import { secureError } from "@/lib/utils/secure-logger";
  * GET /api/snow-removal/companies/[id]/employees
  * Get all employees for a company (admin/owner only)
  */
-async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: companyId } = await params;
+
     // Verify user is admin/owner of this company
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
       .select("role")
       .eq("user_id", session.user.id)
-      .eq("company_id", params.id)
+      .eq("company_id", companyId)
       .eq("is_active", true)
       .single();
 
@@ -36,7 +41,7 @@ async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     const { data: employees, error } = await supabase
       .from("employees")
       .select("*")
-      .eq("company_id", params.id)
+      .eq("company_id", companyId)
       .order("created_at", { ascending: true });
 
     if (error) throw error;

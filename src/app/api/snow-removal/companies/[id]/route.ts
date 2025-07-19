@@ -9,19 +9,24 @@ import type { UpdateCompanyRequest } from "@/types/snow-removal";
  * GET /api/snow-removal/companies/[id]
  * Get company details
  */
-async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: companyId } = await params;
+
     // Verify user belongs to this company
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
       .select("company_id, role")
       .eq("user_id", session.user.id)
-      .eq("company_id", params.id)
+      .eq("company_id", companyId)
       .eq("is_active", true)
       .single();
 
@@ -33,7 +38,7 @@ async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     const { data: company, error } = await supabase
       .from("companies")
       .select("*")
-      .eq("id", params.id)
+      .eq("id", companyId)
       .single();
 
     if (error || !company) {
@@ -54,12 +59,17 @@ async function GET(req: NextRequest, { params }: { params: { id: string } }) {
  * PUT /api/snow-removal/companies/[id]
  * Update company details (admin only)
  */
-async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { id: companyId } = await params;
 
     const updateData: UpdateCompanyRequest = await req.json();
 
@@ -68,7 +78,7 @@ async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
       .from("employees")
       .select("company_id, role")
       .eq("user_id", session.user.id)
-      .eq("company_id", params.id)
+      .eq("company_id", companyId)
       .eq("is_active", true)
       .single();
 
@@ -92,7 +102,7 @@ async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
         ...updateFields,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", params.id)
+      .eq("id", companyId)
       .select()
       .single();
 

@@ -209,10 +209,14 @@ export function useCompanyApi() {
     endpoint: string,
     options: RequestInit = {}
   ) => {
-    const headers = {
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...options.headers,
     };
+
+    // Add existing headers if they exist
+    if (options.headers) {
+      Object.assign(headers, options.headers);
+    }
 
     // Add company context to headers if available
     if (company?.id) {

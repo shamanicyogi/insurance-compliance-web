@@ -105,7 +105,9 @@ export function InvitationManager({ companyId }: InvitationManagerProps) {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success("Invitation created successfully!");
+        toast.success(
+          `✅ Invitation sent! ${email} will receive an email with code: ${data.invitation.invitation_code}`
+        );
         setEmail("");
         setRole("employee");
         setShowCreateDialog(false);

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { secureError } from "@/lib/utils/secure-logger";
+import { sendInvitationEmail } from "@/lib/services/email-service";
 
 interface CreateInvitationRequest {
   email: string;
@@ -13,7 +14,10 @@ interface CreateInvitationRequest {
  * GET /api/snow-removal/companies/[id]/invitations
  * Get all invitations for a company
  */
-async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -62,7 +66,10 @@ async function GET(req: NextRequest, { params }: { params: { id: string } }) {
  * POST /api/snow-removal/companies/[id]/invitations
  * Create a new invitation for the company
  */
-async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -88,10 +95,15 @@ async function POST(req: NextRequest, { params }: { params: { id: string } }) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
 
-    // Verify user is admin/owner of this company
+    // Verify user is admin/owner of this company and get company details
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
-      .select("role")
+      .select(
+        `
+        role,
+        companies!inner(id, name)
+      `
+      )
       .eq("user_id", session.user.id)
       .eq("company_id", companyId)
       .eq("is_active", true)
@@ -104,6 +116,8 @@ async function POST(req: NextRequest, { params }: { params: { id: string } }) {
     ) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
+
+    const companyName = employee.companies.at(0)?.name;
 
     // Check if email is already invited and not expired
     const { data: existingInvitation } = await supabase
@@ -124,27 +138,34 @@ async function POST(req: NextRequest, { params }: { params: { id: string } }) {
       }
     }
 
-    // ✅ Better approach: Check if invited email belongs to existing employee
-    const { data: existingEmployee } = await supabase
-      .from("employees")
-      .select(
-        `
-        id,
-        users!inner(email)
-      `
-      )
-      .eq("company_id", companyId)
-      .eq("users.email", email)
-      .eq("is_active", true)
+    // Ensure the current user exists in public.users (for the invited_by foreign key)
+    const { data: publicUser, error: userCheckError } = await supabase
+      .from("users")
+      .select("id, display_name")
+      .eq("id", session.user.id)
       .single();
 
-    if (existingEmployee) {
-      return NextResponse.json(
-        {
-          error: "User with this email is already an employee of this company",
-        },
-        { status: 400 }
-      );
+    if (userCheckError || !publicUser) {
+      console.log("Creating user in public.users for invitation creator");
+
+      const { error: createUserError } = await supabase.from("users").insert({
+        id: session.user.id,
+        email: session.user.email,
+        auth_user_id: session.user.id,
+        display_name: session.user.name || session.user.email?.split("@")[0],
+        created_at: new Date().toISOString(),
+      });
+
+      if (createUserError) {
+        console.error(
+          "Failed to create user in public.users:",
+          createUserError
+        );
+        return NextResponse.json(
+          { error: "Failed to create user profile" },
+          { status: 500 }
+        );
+      }
     }
 
     // Generate invitation code
@@ -171,6 +192,23 @@ async function POST(req: NextRequest, { params }: { params: { id: string } }) {
 
     if (error) throw error;
 
+    // Send invitation email
+    try {
+      await sendInvitationEmail({
+        email,
+        companyName,
+        invitationCode,
+        inviterName: publicUser?.display_name || session.user.name || undefined,
+        role,
+      });
+
+      console.log("✅ Invitation email sent successfully");
+    } catch (emailError) {
+      console.error("❌ Failed to send invitation email:", emailError);
+      // Don't fail the API call if email fails - invitation still created
+      // Just log the error and continue
+    }
+
     return NextResponse.json(
       {
         success: true,
@@ -181,6 +219,7 @@ async function POST(req: NextRequest, { params }: { params: { id: string } }) {
           invitation_code: invitation.invitation_code,
           expires_at: invitation.expires_at,
         },
+        emailSent: true, // Indicates that an email was attempted
       },
       { status: 201 }
     );

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ interface JoinCompanyData {
 export function SnowRemovalOnboarding() {
   const { data: session } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("create");
 
@@ -49,6 +50,19 @@ export function SnowRemovalOnboarding() {
   const [joinData, setJoinData] = useState<JoinCompanyData>({
     invitationCode: "",
   });
+
+  // Handle URL parameters for invitation codes from email links
+  useEffect(() => {
+    const invitationParam = searchParams.get("invitation");
+    if (invitationParam) {
+      setJoinData((prev) => ({
+        ...prev,
+        invitationCode: invitationParam.toUpperCase(),
+      }));
+      setActiveTab("join"); // Auto-switch to join tab
+      toast.info("Invitation code loaded from email link!");
+    }
+  }, [searchParams]);
 
   // Auto-generate slug from company name
   const handleCompanyNameChange = (name: string) => {

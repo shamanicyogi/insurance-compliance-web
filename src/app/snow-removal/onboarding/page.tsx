@@ -1,5 +1,5 @@
-import { SnowRemovalOnboarding } from "@/components/snow-removal-onboarding";
+import { SnowRemovalOnboardingWrapper } from "@/components/snow-removal-onboarding-wrapper";
 
 export default function SnowRemovalOnboardingPage() {
-  return <SnowRemovalOnboarding />;
+  return <SnowRemovalOnboardingWrapper />;
 }

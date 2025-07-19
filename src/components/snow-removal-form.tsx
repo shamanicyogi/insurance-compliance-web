@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useSession } from "next-auth/react";
+// import { useSession } from "next-auth/react";
 import {
   MapPin,
   Clock,
@@ -46,6 +46,21 @@ import type {
   WeatherCondition,
   WeatherTrend,
 } from "@/types/snow-removal";
+
+interface WeatherData {
+  temperature: number;
+  conditions: WeatherCondition;
+  snowfall: number;
+  trend: WeatherTrend;
+  forecast_confidence: number;
+}
+
+interface Calculations {
+  salt_recommendation_kg: number;
+  material_cost_estimate: number;
+  temperature_factor: number;
+  condition_factor: number;
+}
 
 // Form validation schema
 const snowRemovalSchema = z.object({
@@ -115,16 +130,16 @@ const WeatherConditionBadge = ({
 };
 
 export function SnowRemovalForm({
-  reportId,
+  // reportId,
   onSubmit,
   className,
 }: SnowRemovalFormProps) {
-  const { data: session } = useSession();
+  // const { data: session } = useSession();
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(false);
   const [sitesLoading, setSitesLoading] = useState(true);
-  const [weatherData, setWeatherData] = useState<any>(null);
-  const [calculations, setCalculations] = useState<any>(null);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [calculations, setCalculations] = useState<Calculations | null>(null);
   const [gpsLocation, setGpsLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -163,7 +178,7 @@ export function SnowRemovalForm({
         } else {
           toast.error("Failed to load sites");
         }
-      } catch (error) {
+      } catch {
         toast.error("Error loading sites");
       } finally {
         setSitesLoading(false);
@@ -224,7 +239,7 @@ export function SnowRemovalForm({
         setValue("salt_used_kg", mockCalculations.salt_recommendation_kg);
 
         toast.success("Weather data loaded automatically");
-      } catch (error) {
+      } catch {
         toast.error("Failed to load weather data");
       } finally {
         setLoading(false);
@@ -259,6 +274,9 @@ export function SnowRemovalForm({
         temperature_trend: "steady" as WeatherTrend,
         operator: "",
         site_name: "",
+        salt_used_kg: data.salt_used_kg || 0,
+        deicing_material_kg: data.deicing_material_kg || 0,
+        salt_alternative_kg: data.salt_alternative_kg || 0,
       };
 
       if (onSubmit) {
@@ -271,7 +289,7 @@ export function SnowRemovalForm({
         });
 
         if (response.ok) {
-          const result = await response.json();
+          // const result = await response.json();
           toast.success(
             data.is_draft
               ? "Report saved as draft"
@@ -285,7 +303,7 @@ export function SnowRemovalForm({
           toast.error(error.message || "Failed to submit report");
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("Error submitting report");
     } finally {
       setLoading(false);
