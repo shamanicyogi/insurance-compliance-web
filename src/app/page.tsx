@@ -68,48 +68,80 @@ export default function Home() {
         {/* Hero Section */}
         <section className="py-20 bg-gradient-to-br from-background to-muted/20">
           <div className="container mx-auto px-6">
-            <div className="max-w-4xl mx-auto text-center space-y-8">
-              <div className="space-y-4">
-                <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-                  Insurance Compliance{" "}
-                  <span className="text-primary">Made Simple</span>
-                </h1>
-                <p className="text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-                  Streamline insurance compliance and employee monitoring for
-                  your business. Ensure every job meets insurance requirements
-                  while providing employers with complete visibility and
-                  automated reporting.
-                </p>
-              </div>
+            <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
+              {/* Hero Content */}
+              <div className="space-y-8 text-center lg:text-left">
+                <div className="space-y-4">
+                  <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+                    Insurance Compliance{" "}
+                    <span className="text-primary">Made Simple</span>
+                  </h1>
+                  <p className="text-xl text-muted-foreground leading-relaxed">
+                    Streamline insurance compliance and employee monitoring for
+                    your business. Ensure every job meets insurance requirements
+                    while providing employers with complete visibility and
+                    automated reporting.
+                  </p>
+                </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/signup">
-                  <Button size="lg" className="px-8 py-4 text-lg">
-                    Start Free Trial
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                  <Link href="/signup">
+                    <Button size="lg" className="px-8 py-4 text-lg">
+                      Start Free Trial
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="px-8 py-4 text-lg"
+                  >
+                    View Demo
                   </Button>
-                </Link>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="px-8 py-4 text-lg"
-                >
-                  View Demo
-                </Button>
+                </div>
+
+                <div className="flex items-center justify-center lg:justify-start gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <span>No setup fees</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <span>Insurance compliant</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <span>Real-time monitoring</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>No setup fees</span>
+              {/* Hero Image */}
+              <div className="relative">
+                <div className="relative overflow-hidden rounded-2xl shadow-2xl">
+                  <img
+                    src="/images/snow_removal_truck.jpg"
+                    alt="Professional snow removal truck in action - SlipCheck insurance compliance monitoring"
+                    className="w-full h-auto object-cover"
+                    width={600}
+                    height={400}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>Insurance compliant</span>
+
+                {/* Floating badges */}
+                <div className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-lg p-3 border">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Shield className="h-4 w-4 text-green-500" />
+                    <span>Insurance Compliant</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>Real-time monitoring</span>
+
+                <div className="absolute -top-4 -right-4 bg-white rounded-lg shadow-lg p-3 border">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Eye className="h-4 w-4 text-blue-500" />
+                    <span>Live Monitoring</span>
+                  </div>
                 </div>
               </div>
             </div>
