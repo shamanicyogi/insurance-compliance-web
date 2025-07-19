@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { IconActivity, IconBrain } from "@tabler/icons-react";
+import { IconActivity, IconBrain, IconSnowflake } from "@tabler/icons-react";
 import { NavMain } from "@/components/nav-main";
 import {
   Sidebar,
@@ -25,6 +25,11 @@ const data = {
       title: "Dashboard",
       url: "/dashboard",
       icon: IconActivity,
+    },
+    {
+      title: "Snow Removal",
+      url: "/snow-removal",
+      icon: IconSnowflake,
     },
     {
       title: "AI Coach",

@@ -52,6 +52,18 @@ A complete, production-ready Next.js starter template with authentication, payme
 - **Form handling** with React Hook Form + Zod
 - **Hot reload** with Turbopack
 
+### ❄️ **Snow Removal Compliance System**
+
+Built-in example application demonstrating enterprise features:
+
+- **Automated weather integration** with OpenWeatherMap API
+- **Employee management** with role-based access control
+- **Smart material calculations** based on weather conditions
+- **GPS location tracking** for compliance verification
+- **Digital forms** with real-time validation
+- **Compliance reporting** and analytics dashboard
+- **Mobile-responsive design** for field workers
+
 ## 🚀 Quick Start
 
 ### Prerequisites

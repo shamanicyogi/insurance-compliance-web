@@ -1,25 +1,34 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
-// Define API routes that require an active subscription for write operations
+// Define API routes that require subscription protection
 const protectedApiRoutes = [
-  "/api/user/hydration",
-  "/api/user/macros",
-  "/api/user/meals",
-  "/api/user/metrics",
-  "/api/user/progress-photos",
-  "/api/user/sleep",
-  "/api/user/weight",
-  "/api/user/workout",
-  "/api/food",
-  "/api/programs",
-  "/api/exercises",
-  "/api/journal",
+  "/api/user/upload",
+  "/api/user/profile-picture",
+  "/api/stripe/checkout",
+  "/api/stripe/portal",
 ];
 
-// Production middleware with authentication and onboarding flow
+// Check employee status directly using Supabase
+async function hasEmployeeRecord(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("employees")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .single();
+
+    return !error && !!data;
+  } catch (error) {
+    console.error("Employee check failed:", error);
+    return false; // Safe default - redirect to onboarding
+  }
+}
+
 export default withAuth(
-  function middleware(req) {
+  async function middleware(req) {
     const token = req.nextauth.token;
     const isAuthenticated = !!token;
     const pathname = req.nextUrl.pathname;
@@ -36,8 +45,6 @@ export default withAuth(
       isModificationMethod &&
       !token?.hasActiveSubscription
     ) {
-      // User is trying to modify data on a protected API without a subscription.
-      // Return a 403 Forbidden response. This is our server-side "bouncer".
       return new NextResponse(
         JSON.stringify({
           error: "A subscription is required to perform this action.",
@@ -52,39 +59,37 @@ export default withAuth(
     // Define route types
     const isAuthPage =
       pathname.startsWith("/login") || pathname.startsWith("/signup");
-    const isOnboardingPage = pathname.startsWith("/onboarding");
+    const isSnowRemovalOnboarding = pathname.startsWith(
+      "/snow-removal/onboarding"
+    );
 
-    // If user is logged in and trying to access login/signup pages
+    // Routes that don't require employee records
+    const isPublicRoute = isAuthPage || isSnowRemovalOnboarding;
+
+    // If user is logged in and trying to access login/signup pages, redirect to dashboard
     if (isAuthenticated && isAuthPage) {
-      // Check if they need onboarding first
-      if (!token?.onboardingCompleted) {
-        return NextResponse.redirect(new URL("/onboarding", req.url));
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+
+    // 🎯 EMPLOYEE CHECK FOR ALL AUTHENTICATED ROUTES
+    // All authenticated users must have employee records (this is a snow removal company app)
+    if (isAuthenticated && !isPublicRoute && token.sub) {
+      const hasEmployee = await hasEmployeeRecord(token.sub);
+
+      if (!hasEmployee) {
+        return NextResponse.redirect(
+          new URL("/snow-removal/onboarding", req.url)
+        );
       }
-
-      // User completed onboarding, send to dashboard
-      return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
-    // If user is authenticated but hasn't completed onboarding
-    // Allow access to /onboarding/finalize even if onboarding isn't completed
-    if (
-      isAuthenticated &&
-      !token?.onboardingCompleted &&
-      !isOnboardingPage &&
-      !pathname.startsWith("/onboarding/finalize")
-    ) {
-      return NextResponse.redirect(new URL("/onboarding", req.url));
-    }
+    // If user has employee record but is on onboarding, redirect to dashboard
+    if (isAuthenticated && isSnowRemovalOnboarding && token.sub) {
+      const hasEmployee = await hasEmployeeRecord(token.sub);
 
-    // If user completed onboarding but is on onboarding page, redirect to dashboard
-    // Exception: allow access to /onboarding/finalize which handles its own logic
-    if (
-      isAuthenticated &&
-      token?.onboardingCompleted &&
-      isOnboardingPage &&
-      !pathname.startsWith("/onboarding/finalize")
-    ) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+      if (hasEmployee) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
     }
 
     return NextResponse.next();
@@ -94,11 +99,11 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const pathname = req.nextUrl.pathname;
 
-        // Allow unauthenticated access to auth and onboarding pages
+        // Allow unauthenticated access to auth and snow removal onboarding pages
         if (
           pathname.startsWith("/login") ||
           pathname.startsWith("/signup") ||
-          pathname.startsWith("/onboarding")
+          pathname.startsWith("/snow-removal/onboarding")
         ) {
           return true;
         }
@@ -112,26 +117,19 @@ export default withAuth(
 
 export const config = {
   matcher: [
+    // All app pages require employee records
     "/dashboard/:path*",
     "/profile/:path*",
     "/settings/:path*",
     "/billing/:path*",
     "/ai-coach/:path*",
+    "/snow-removal/:path*",
+    "/team/:path*",
+    "/tasks/:path*",
     "/login",
     "/signup",
-    "/onboarding/:path*",
-    // Add all protected API routes to the matcher
-    "/api/user/hydration/:path*",
-    "/api/user/macros/:path*",
-    "/api/user/meals/:path*",
-    "/api/user/metrics/:path*",
-    "/api/user/progress-photos/:path*",
-    "/api/user/sleep/:path*",
-    "/api/user/weight/:path*",
-    "/api/user/workout/:path*",
-    "/api/food/:path*",
-    "/api/programs/:path*",
-    "/api/exercises/:path*",
-    "/api/journal/:path*",
+    // API routes that need protection
+    "/api/user/:path*",
+    "/api/stripe/:path*",
   ],
 };
