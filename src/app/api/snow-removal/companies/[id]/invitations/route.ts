@@ -20,12 +20,14 @@ async function GET(req: NextRequest, { params }: { params: { id: string } }) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: companyId } = await params;
+
     // Verify user is admin/owner of this company
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
       .select("role")
       .eq("user_id", session.user.id)
-      .eq("company_id", params.id)
+      .eq("company_id", companyId)
       .eq("is_active", true)
       .single();
 
@@ -41,7 +43,7 @@ async function GET(req: NextRequest, { params }: { params: { id: string } }) {
     const { data: invitations, error } = await supabase
       .from("company_invitations")
       .select("*")
-      .eq("company_id", params.id)
+      .eq("company_id", companyId)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -69,6 +71,11 @@ async function POST(req: NextRequest, { params }: { params: { id: string } }) {
 
     const { email, role }: CreateInvitationRequest = await req.json();
 
+    console.log(email, "email 😱");
+    console.log(role, "role 😱");
+
+    const { id: companyId } = await params;
+
     // Validate input
     if (!email || !role) {
       return NextResponse.json(
@@ -86,7 +93,7 @@ async function POST(req: NextRequest, { params }: { params: { id: string } }) {
       .from("employees")
       .select("role")
       .eq("user_id", session.user.id)
-      .eq("company_id", params.id)
+      .eq("company_id", companyId)
       .eq("is_active", true)
       .single();
 
@@ -102,7 +109,7 @@ async function POST(req: NextRequest, { params }: { params: { id: string } }) {
     const { data: existingInvitation } = await supabase
       .from("company_invitations")
       .select("id, expires_at, accepted_at")
-      .eq("company_id", params.id)
+      .eq("company_id", companyId)
       .eq("email", email)
       .is("accepted_at", null)
       .single();
@@ -117,17 +124,25 @@ async function POST(req: NextRequest, { params }: { params: { id: string } }) {
       }
     }
 
-    // Check if user is already an employee
+    // ✅ Better approach: Check if invited email belongs to existing employee
     const { data: existingEmployee } = await supabase
       .from("employees")
-      .select("id")
-      .eq("company_id", params.id)
-      .eq("user_id", session.user.id)
+      .select(
+        `
+        id,
+        users!inner(email)
+      `
+      )
+      .eq("company_id", companyId)
+      .eq("users.email", email)
+      .eq("is_active", true)
       .single();
 
     if (existingEmployee) {
       return NextResponse.json(
-        { error: "User is already an employee of this company" },
+        {
+          error: "User with this email is already an employee of this company",
+        },
         { status: 400 }
       );
     }
@@ -142,7 +157,7 @@ async function POST(req: NextRequest, { params }: { params: { id: string } }) {
     const { data: invitation, error } = await supabase
       .from("company_invitations")
       .insert({
-        company_id: params.id,
+        company_id: companyId,
         email,
         role,
         invitation_code: invitationCode,

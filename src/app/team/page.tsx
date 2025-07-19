@@ -20,27 +20,31 @@ interface Employee {
   employee_number: string;
   role: "owner" | "admin" | "manager" | "employee";
   user_id: string;
-  company_id: string;
+  company_id: string; // Add missing company_id property
   phone?: string;
   is_active: boolean;
   created_at: string;
+  companies?: Company; // Add companies property to Employee interface
 }
 
 interface Company {
   id: string;
   name: string;
+  slug: string;
   subscription_plan: string;
+  subscription_status: string;
+  is_active: boolean;
   max_employees: number;
 }
 
 interface EmployeeProfile {
   employee: Employee;
-  companies: Company;
 }
 
 export default function TeamPage() {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<EmployeeProfile | null>(null);
+  console.log(profile, "profile 😱");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -140,7 +144,9 @@ export default function TeamPage() {
           </div>
           <div className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-muted-foreground" />
-            <span className="font-medium">{profile.companies.name}</span>
+            <span className="font-medium">
+              {profile.employee.companies?.name}
+            </span>
           </div>
         </div>
 
@@ -160,13 +166,13 @@ export default function TeamPage() {
               </div>
               <div>
                 <div className="text-2xl font-bold">
-                  {profile.companies.max_employees}
+                  {profile.employee.companies?.max_employees}
                 </div>
                 <p className="text-xs text-muted-foreground">Max Employees</p>
               </div>
               <div>
                 <Badge variant="outline" className="w-fit">
-                  {profile.companies.subscription_plan}
+                  {profile.employee.companies?.subscription_plan}
                 </Badge>
                 <p className="text-xs text-muted-foreground mt-1">Plan</p>
               </div>
