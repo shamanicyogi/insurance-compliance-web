@@ -44,7 +44,6 @@ interface EmployeeProfile {
 export default function TeamPage() {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<EmployeeProfile | null>(null);
-  console.log(profile, "profile 😱");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
 

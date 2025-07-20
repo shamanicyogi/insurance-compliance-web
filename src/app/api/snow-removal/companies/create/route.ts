@@ -16,7 +16,6 @@ interface CreateCompanyRequest {
  * Create a new company and make the current user the owner
  */
 async function POST(req: NextRequest) {
-  console.log("CALLED 🥶");
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -41,8 +40,6 @@ async function POST(req: NextRequest) {
       .eq("is_active", true)
       .single();
 
-    console.log(existingEmployee, "existingEmployee 😱");
-
     if (existingEmployee) {
       return NextResponse.json(
         {
@@ -59,8 +56,6 @@ async function POST(req: NextRequest) {
       .select("id")
       .eq("slug", companyData.slug)
       .single();
-
-    console.log(existingCompany, "existingCompany 😱");
 
     if (existingCompany) {
       return NextResponse.json(
@@ -90,14 +85,9 @@ async function POST(req: NextRequest) {
       .select()
       .single();
 
-    console.log(company, "company 😱");
-    console.log(companyError, "companyError 😱");
-
     if (companyError || !company) {
       throw companyError || new Error("Failed to create company");
     }
-
-    console.log(session.user.id, "session.user.id 😱 \n \n");
 
     // Create the owner employee record
     const { data: employee, error: employeeError } = await supabaseAdmin
@@ -112,9 +102,6 @@ async function POST(req: NextRequest) {
       })
       .select()
       .single();
-
-    console.log(employee, "employee 😱");
-    console.log(employeeError, "employeeError 😱");
 
     if (employeeError || !employee) {
       // Rollback - delete the company if employee creation failed
@@ -138,8 +125,6 @@ async function POST(req: NextRequest) {
         allow_draft_editing_hours: 24,
         notification_settings: {},
       });
-
-    console.log(settingsError, "settingsError 😱");
 
     if (settingsError) {
       secureError("Failed to create company settings:", settingsError);

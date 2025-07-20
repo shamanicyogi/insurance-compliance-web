@@ -13,13 +13,16 @@ interface JoinCompanyRequest {
  * Join a company using an invitation code
  */
 async function POST(req: NextRequest) {
+  console.log("POST /api/snow-removal/companies/join 💜💜💜💜💜💜💜💜💜💜");
   try {
     const session = await getServerSession(authOptions);
+    console.log(session, "session 💜");
     if (!session?.user?.id || !session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { invitationCode }: JoinCompanyRequest = await req.json();
+    console.log(invitationCode, "invitationCode 💜");
 
     if (!invitationCode) {
       return NextResponse.json(
@@ -36,6 +39,8 @@ async function POST(req: NextRequest) {
       .eq("is_active", true)
       .single();
 
+    console.log(existingEmployee, "existingEmployee 💜");
+
     if (existingEmployee) {
       return NextResponse.json(
         {
@@ -45,6 +50,8 @@ async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    console.log("no existing employee 💜");
 
     // Find the invitation
     const { data: invitation, error: invitationError } = await supabase
@@ -61,6 +68,9 @@ async function POST(req: NextRequest) {
       .gt("expires_at", new Date().toISOString()) // Not expired
       .single();
 
+    console.log(invitation, "invitation 💜");
+    console.log(invitationError, "invitationError 💜");
+
     if (invitationError || !invitation) {
       return NextResponse.json(
         { error: "Invalid or expired invitation code" },
@@ -76,12 +86,16 @@ async function POST(req: NextRequest) {
       );
     }
 
+    console.log("company is active 💜");
+
     // Check employee limit
     const { count: currentEmployeeCount } = await supabase
       .from("employees")
       .select("id", { count: "exact" })
       .eq("company_id", invitation.company_id)
       .eq("is_active", true);
+
+    console.log(currentEmployeeCount, "currentEmployeeCount 💜");
 
     if (
       currentEmployeeCount &&
@@ -93,11 +107,15 @@ async function POST(req: NextRequest) {
       );
     }
 
+    console.log("employee limit not reached 💜");
+
     // Generate employee number
     const { count: totalEmployees } = await supabase
       .from("employees")
       .select("id", { count: "exact" })
       .eq("company_id", invitation.company_id);
+
+    console.log(totalEmployees, "totalEmployees 💜");
 
     const employeeNumber = `EMP${String((totalEmployees || 0) + 1).padStart(
       3,
@@ -118,9 +136,14 @@ async function POST(req: NextRequest) {
       .select()
       .single();
 
+    console.log(employee, "employee 💜");
+    console.log(employeeError, "employeeError 💜");
+
     if (employeeError || !employee) {
       throw employeeError || new Error("Failed to create employee record");
     }
+
+    console.log("employee created 💜");
 
     // Mark invitation as accepted
     const { error: updateError } = await supabase
@@ -130,10 +153,16 @@ async function POST(req: NextRequest) {
       })
       .eq("id", invitation.id);
 
+    console.log(updateError, "updateError 💜");
+
     if (updateError) {
       secureError("Failed to update invitation:", updateError);
       // Don't fail the request, just log the error
     }
+
+    console.log("invitation updated 💜");
+
+    console.log("returning response 💜");
 
     return NextResponse.json(
       {
@@ -148,6 +177,7 @@ async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    console.log(error, "error 💜");
     secureError("Error joining company:", error);
     return NextResponse.json(
       { error: "Failed to join company" },

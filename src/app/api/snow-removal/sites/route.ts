@@ -12,7 +12,6 @@ import { secureError } from "@/lib/utils/secure-logger";
 async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    console.log(session, "session 😱");
     if (!session?.user?.email) {
       // TODO - get id
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,9 +24,6 @@ async function GET() {
       .eq("user_id", session.user.id)
       .eq("is_active", true)
       .single();
-
-    console.log(employee, "employee 😱");
-    console.log(employeeError, "employeeError 😱");
 
     if (employeeError || !employee) {
       return NextResponse.json(
@@ -60,9 +56,6 @@ async function GET() {
     const { data: sites, error } = await query
       .order("priority", { ascending: true })
       .order("name", { ascending: true });
-
-    console.log(sites, "sites 😱");
-    console.log(error, "error 😱");
 
     if (error) throw error;
 

@@ -78,9 +78,6 @@ async function POST(
 
     const { email, role }: CreateInvitationRequest = await req.json();
 
-    console.log(email, "email 😱");
-    console.log(role, "role 😱");
-
     const { id: companyId } = await params;
 
     // Validate input
@@ -109,19 +106,13 @@ async function POST(
       .eq("is_active", true)
       .single();
 
-    console.log(employee, "employee 😱");
-    console.log(employeeError, "employeeError 😱");
-
     if (
       employeeError ||
       !employee ||
       !["owner", "admin"].includes(employee.role)
     ) {
-      console.log("Access denied 💜");
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
-
-    console.log(employee.companies, "employee.companies 💜");
 
     // TODO - SQL MIGRATION companieS (plural) to company (singular)
     const companyName = (
@@ -136,8 +127,6 @@ async function POST(
       .eq("email", email)
       .is("accepted_at", null)
       .single();
-
-    console.log(existingInvitation, "existingInvitation 😱");
 
     if (existingInvitation) {
       const isExpired = new Date(existingInvitation.expires_at) < new Date();
@@ -156,12 +145,7 @@ async function POST(
       .eq("id", session.user.id)
       .single();
 
-    console.log(publicUser, "publicUser 😱");
-    console.log(userCheckError, "userCheckError 😱");
-
     if (userCheckError || !publicUser) {
-      console.log("Creating user in public.users for invitation creator");
-
       const { error: createUserError } = await supabase.from("users").insert({
         id: session.user.id,
         email: session.user.email,
@@ -169,8 +153,6 @@ async function POST(
         display_name: session.user.name || session.user.email?.split("@")[0],
         created_at: new Date().toISOString(),
       });
-
-      console.log(createUserError, "createUserError 😱");
 
       if (createUserError) {
         console.error(
@@ -206,9 +188,6 @@ async function POST(
       .select()
       .single();
 
-    console.log(invitation, "invitation 😱");
-    console.log(error, "error 😱");
-
     if (error) throw error;
 
     // Send invitation email
@@ -221,10 +200,9 @@ async function POST(
         role,
       });
 
-      console.log("✅ Invitation email sent successfully");
+      console.log("Invitation email sent successfully");
     } catch (emailError) {
-      console.log(emailError, "emailError 😱");
-      console.error("❌ Failed to send invitation email:", emailError);
+      console.error("Failed to send invitation email:", emailError);
       // Don't fail the API call if email fails - invitation still created
       // Just log the error and continue
     }
