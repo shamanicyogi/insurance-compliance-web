@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { secureError } from "@/lib/utils/secure-logger";
 import { format } from "date-fns";
+import type { SnowRemovalReportWithRelations } from "@/types/snow-removal";
 
 /**
  * GET /api/snow-removal/reports/[id]/pdf
@@ -128,7 +129,7 @@ async function GET(
 }
 
 function generateReportHTML(
-  report: any,
+  report: SnowRemovalReportWithRelations,
   company?: {
     name: string;
     address?: string;
@@ -136,9 +137,9 @@ function generateReportHTML(
     email?: string;
   } | null
 ): string {
-  const formatTime = (timeString: string) => timeString || "Not set";
+  const formatTime = (timeString?: string | null) => timeString || "Not set";
   const formatTemp = (temp: number) => `${temp}°C`;
-  const formatCapitalized = (str: string) =>
+  const formatCapitalized = (str?: string | null) =>
     str?.replace(/([A-Z])/g, " $1").trim() || "";
 
   return `
@@ -285,7 +286,7 @@ function generateReportHTML(
             </div>
             <div class="info-item">
                 <span class="info-label">Finish Time:</span>
-                <span class="info-value">${formatTime(report.finish_time)}</span>
+                <span class="info-value">${formatTime(report.finish_time || "")}</span>
             </div>
         </div>
     </div>
