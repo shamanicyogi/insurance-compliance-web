@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,13 @@ type Provider = "google" | "apple" | "strava";
 export function LoginForm({}: // className,
 // ...props
 React.ComponentProps<"form">) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  const invitationCode = searchParams.get("invitationCode");
+  const prefilledEmail = searchParams.get("email");
+
   const [isLoading, setIsLoading] = React.useState<
     Record<Provider | "email", boolean>
   >({
@@ -22,13 +30,47 @@ React.ComponentProps<"form">) {
     apple: false,
     strava: false,
   });
-  const [email, setEmail] = React.useState("");
+  const [email, setEmail] = React.useState(prefilledEmail || "");
+
+  // Auto-join company after authentication if invitation code exists
+  React.useEffect(() => {
+    const handleInvitationJoin = async () => {
+      if (session?.user && invitationCode) {
+        try {
+          const response = await fetch("/api/snow-removal/companies/join", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ invitationCode }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            toast.success(`Welcome to ${data.companyName}!`);
+            router.push("/dashboard");
+          } else {
+            toast.error(data.error || "Failed to join company");
+          }
+        } catch (error) {
+          console.error("Error joining company:", error);
+          toast.error("Failed to join company");
+        }
+      }
+    };
+
+    handleInvitationJoin();
+  }, [session, invitationCode, router]);
 
   const handleOAuthSignIn = async (provider: Provider) => {
     try {
       setIsLoading((prev) => ({ ...prev, [provider]: true }));
       const result = await signIn(provider, {
-        callbackUrl: "/dashboard",
+        callbackUrl: invitationCode
+          ? `/login?invitationCode=${invitationCode}`
+          : "/dashboard",
         redirect: false,
         prompt: "select_account",
       });
@@ -58,7 +100,9 @@ React.ComponentProps<"form">) {
       setIsLoading((prev) => ({ ...prev, email: true }));
       const result = await signIn("email", {
         email,
-        callbackUrl: "/dashboard",
+        callbackUrl: invitationCode
+          ? `/login?invitationCode=${invitationCode}`
+          : "/dashboard",
         redirect: false,
       });
 
@@ -81,9 +125,13 @@ React.ComponentProps<"form">) {
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-bold">Welcome back</h1>
+        <h1 className="text-2xl font-bold">
+          {invitationCode ? "Join Your Team" : "Welcome back"}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Choose how you&apos;d like to sign in
+          {invitationCode
+            ? "Sign in to accept your company invitation"
+            : "Choose how you'd like to sign in"}
         </p>
       </div>
 
@@ -98,9 +146,14 @@ React.ComponentProps<"form">) {
               placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading.email}
+              disabled={isLoading.email || !!prefilledEmail}
               required
             />
+            {prefilledEmail && (
+              <p className="text-xs text-muted-foreground">
+                This email was invited to join the company
+              </p>
+            )}
           </div>
           <Button type="submit" className="w-full" disabled={isLoading.email}>
             {isLoading.email ? "Sending..." : "Send Magic Link"}
@@ -135,7 +188,7 @@ React.ComponentProps<"form">) {
       <div className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Link
-          href="/signup"
+          href={`/signup${invitationCode ? `?invitationCode=${invitationCode}&email=${encodeURIComponent(email)}` : ""}`}
           className="font-medium text-primary hover:underline"
         >
           Sign up

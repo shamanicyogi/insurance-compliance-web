@@ -19,9 +19,6 @@ async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     console.log(session, "session 💜");
-    if (!session?.user?.id || !session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const { invitationCode }: JoinCompanyRequest = await req.json();
     console.log(invitationCode, "invitationCode 💜");
@@ -33,6 +30,42 @@ async function POST(req: NextRequest) {
       );
     }
 
+    // If user is not logged in, validate invitation and return signup URL
+    if (!session?.user?.id || !session?.user?.email) {
+      // First validate that the invitation exists and is valid
+      const { data: invitation, error: invitationError } = await supabase
+        .from("company_invitations")
+        .select(
+          `
+          *,
+          companies!inner(id, name, slug, is_active)
+        `
+        )
+        .eq("invitation_code", invitationCode.toUpperCase())
+        .is("accepted_at", null) // Not yet accepted
+        .gt("expires_at", new Date().toISOString()) // Not expired
+        .single();
+
+      if (invitationError || !invitation) {
+        return NextResponse.json(
+          { error: "Invalid or expired invitation code" },
+          { status: 400 }
+        );
+      }
+
+      // Return signup URL with invitation code
+      return NextResponse.json(
+        {
+          requiresAuth: true,
+          signupUrl: `/signup?invitationCode=${invitationCode}&email=${encodeURIComponent(invitation.email)}`,
+          loginUrl: `/login?invitationCode=${invitationCode}&email=${encodeURIComponent(invitation.email)}`,
+          companyName: invitation.companies.name,
+        },
+        { status: 200 }
+      );
+    }
+
+    // Rest of the existing logic for authenticated users...
     // Check if user already has an employee record
     const { data: existingEmployee } = await supabase
       .from("employees")
