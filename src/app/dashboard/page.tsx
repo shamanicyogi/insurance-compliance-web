@@ -252,7 +252,9 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
         const [reportsData, sitesData, employeesData] = await Promise.all([
           reportsResponse.ok ? reportsResponse.json() : { reports: [] },
           sitesResponse.ok ? sitesResponse.json() : { sites: [] },
-          employeesResponse.ok ? employeesResponse.json() : { employees: [] },
+          employeesResponse.ok && "json" in employeesResponse
+            ? employeesResponse.json()
+            : { employees: [] },
         ]);
 
         const reports: Report[] = reportsData.reports || [];
