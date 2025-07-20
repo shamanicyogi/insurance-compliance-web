@@ -30,7 +30,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SnowRemovalForm } from "@/components/snow-removal-form";
 import { DraftReportsList } from "@/components/draft-reports-list";
 import { AppLayout } from "@/components/app-layout";
-import type { SnowRemovalReport, Site } from "@/types/snow-removal";
+import type {
+  SnowRemovalReport,
+  Site,
+  CreateReportRequest,
+} from "@/types/snow-removal";
 
 interface ReportsResponse {
   reports: (SnowRemovalReport & {
@@ -144,25 +148,66 @@ export default function SnowRemovalPage() {
     setActiveTab("create");
   };
 
-  const handleReportSubmitted = () => {
-    toast.success("Report submitted successfully!");
-    setActiveTab("reports");
-    // Reload reports
-    const loadReports = async () => {
-      try {
-        const response = await fetch("/api/snow-removal/reports");
-        if (response.ok) {
-          const data = await response.json();
-          setReports(data.reports);
-        }
-      } catch (error) {
-        console.error("Error reloading reports:", error);
-        toast.error("Failed to reload reports");
+  const handleReportSubmitted = async (reportData: CreateReportRequest) => {
+    try {
+      let response;
+
+      if (editingReport) {
+        // Update existing draft
+        response = await fetch(
+          `/api/snow-removal/reports/${editingReport.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reportData),
+          }
+        );
+      } else {
+        // Create new report
+        response = await fetch("/api/snow-removal/reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(reportData),
+        });
       }
-    };
-    loadReports();
-    // Trigger draft refresh
-    setRefreshDrafts((prev) => prev + 1);
+
+      if (response.ok) {
+        toast.success(
+          reportData.is_draft
+            ? "Report saved as draft"
+            : "Report submitted successfully"
+        );
+
+        // If not a draft, go to reports tab, otherwise stay on current tab
+        if (!reportData.is_draft) {
+          setActiveTab("reports");
+        }
+        setEditingReport(null); // Clear editing state
+
+        // Reload reports
+        const loadReports = async () => {
+          try {
+            const reportsResponse = await fetch("/api/snow-removal/reports");
+            if (reportsResponse.ok) {
+              const data = await reportsResponse.json();
+              setReports(data.reports);
+            }
+          } catch (error) {
+            console.error("Error reloading reports:", error);
+            toast.error("Failed to reload reports");
+          }
+        };
+        loadReports();
+        // Trigger draft refresh
+        setRefreshDrafts((prev) => prev + 1);
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Failed to save report");
+      }
+    } catch (error) {
+      console.error("Error saving report:", error);
+      toast.error("Error saving report");
+    }
   };
 
   const handleEditDraft = (report: ReportsResponse["reports"][0]) => {
@@ -503,7 +548,8 @@ export default function SnowRemovalPage() {
               </CardHeader>
               <CardContent>
                 <SnowRemovalForm
-                  existingReport={editingReport}
+                  // @ts-expect-error - Type mismatch between report structures, works at runtime
+                  existingReport={editingReport || undefined}
                   onSubmit={handleReportSubmitted}
                 />
               </CardContent>

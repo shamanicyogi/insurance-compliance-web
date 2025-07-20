@@ -103,7 +103,7 @@ type FormData = z.infer<typeof snowRemovalSchema>;
 interface SnowRemovalFormProps {
   reportId?: string;
   existingReport?: SnowRemovalReportWithRelations; // For editing drafts
-  onSubmit?: (data: CreateReportRequest) => void;
+  onSubmit?: (data: CreateReportRequest) => Promise<void>;
   className?: string;
 }
 
@@ -480,9 +480,16 @@ export function SnowRemovalForm({
       };
 
       if (onSubmit) {
-        onSubmit(reportData);
-        // Clear form after callback regardless of success/failure in parent
-        resetFormState();
+        try {
+          await onSubmit(reportData);
+          // Only clear form if no existing report (new report mode)
+          if (!existingReport) {
+            resetFormState();
+          }
+        } catch (error) {
+          console.error("Error in onSubmit callback:", error);
+          toast.error("Failed to save report");
+        }
       } else {
         const response = await fetch("/api/snow-removal/reports", {
           method: "POST",
