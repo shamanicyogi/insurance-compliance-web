@@ -14,6 +14,8 @@ interface JoinCompanyRequest {
  */
 async function POST(req: NextRequest) {
   console.log("POST /api/snow-removal/companies/join 💜💜💜💜💜💜💜💜💜💜");
+
+  console.log(authOptions, "authOptions 💜");
   try {
     const session = await getServerSession(authOptions);
     console.log(session, "session 💜");
