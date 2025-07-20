@@ -30,7 +30,11 @@ import {
 } from "@/components/ui/select";
 
 import { toast } from "sonner";
-import type { SnowRemovalReportWithRelations } from "@/types/snow-removal";
+import type {
+  FollowUpPlan,
+  SnowRemovalMethod,
+  SnowRemovalReportWithRelations,
+} from "@/types/snow-removal";
 
 interface AdminReportViewProps {
   report: SnowRemovalReportWithRelations;
@@ -380,7 +384,7 @@ export function AdminReportView({
                       onValueChange={(value) =>
                         setEditedReport({
                           ...editedReport,
-                          snow_removal_method: value as any,
+                          snow_removal_method: value as SnowRemovalMethod,
                         })
                       }
                     >
@@ -412,7 +416,7 @@ export function AdminReportView({
                       onValueChange={(value) =>
                         setEditedReport({
                           ...editedReport,
-                          follow_up_plans: value as any,
+                          follow_up_plans: value as FollowUpPlan,
                         })
                       }
                     >
