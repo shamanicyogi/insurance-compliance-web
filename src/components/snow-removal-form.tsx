@@ -188,18 +188,34 @@ export function SnowRemovalForm({
     loadSites();
   }, []);
 
-  // Get GPS location
+  // Get GPS location (optional - won't break if unavailable)
   useEffect(() => {
-    if (navigator.geolocation) {
+    // Check if geolocation is available and permissions allow it
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      // Use a timeout to avoid hanging if permission dialog is ignored
+      const timeoutId = setTimeout(() => {
+        console.warn("GPS location request timed out");
+      }, 5000);
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          clearTimeout(timeoutId);
           setGpsLocation({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           });
         },
         (error) => {
-          console.warn("GPS location not available:", error);
+          clearTimeout(timeoutId);
+          // Don't warn for permission denied - this is expected in many cases
+          if (error.code !== error.PERMISSION_DENIED) {
+            console.warn("GPS location not available:", error.message);
+          }
+        },
+        {
+          timeout: 5000,
+          enableHighAccuracy: false,
+          maximumAge: 300000, // 5 minutes
         }
       );
     }
@@ -208,39 +224,125 @@ export function SnowRemovalForm({
   // Auto-fill weather data when site changes
   useEffect(() => {
     const autoFillWeatherData = async () => {
-      if (!selectedSiteId) return;
+      if (!selectedSiteId) {
+        console.log("No site selected, skipping weather fetch");
+        return;
+      }
 
       const selectedSite = sites.find((site) => site.id === selectedSiteId);
-      if (!selectedSite?.latitude || !selectedSite?.longitude) return;
+      console.log("Selected site:", selectedSite);
 
+      if (!selectedSite?.latitude || !selectedSite?.longitude) {
+        console.log("Site missing coordinates, skipping weather fetch");
+        return;
+      }
+
+      console.log(
+        `Fetching weather for: ${selectedSite.name} (${selectedSite.latitude}, ${selectedSite.longitude})`
+      );
       setLoading(true);
+
       try {
-        // This would normally call an API to get weather data
-        // For now, we'll simulate it
-        const mockWeatherData = {
-          temperature: -5,
-          conditions: "lightSnow" as WeatherCondition,
-          snowfall: 2.5,
-          trend: "steady" as WeatherTrend,
-          forecast_confidence: 0.85,
+        // Get weather data from our secure API endpoint
+        const weatherResponse = await fetch(
+          `/api/snow-removal/weather?lat=${selectedSite.latitude}&lon=${selectedSite.longitude}`,
+          {
+            credentials: "include",
+          }
+        );
+
+        console.log("Weather API response status:", weatherResponse.status);
+
+        if (!weatherResponse.ok) {
+          throw new Error(`Weather API error: ${weatherResponse.status}`);
+        }
+
+        const weatherData = await weatherResponse.json();
+        console.log("Weather data received:", weatherData);
+
+        // Transform API response to our expected format
+        const transformedWeatherData = {
+          temperature: weatherData.temperature,
+          conditions: weatherData.conditions,
+          snowfall: weatherData.snowfall, // API already returns cm, no conversion needed
+          trend: weatherData.trend,
+          forecast_confidence: weatherData.forecast_confidence,
         };
 
-        const mockCalculations = {
-          salt_recommendation_kg: 45.5,
-          material_cost_estimate: 22.75,
-          temperature_factor: 1.1,
+        // Calculate material usage (this could be moved to an API endpoint later)
+        const calculateMaterialUsage = (weather: WeatherData, site: Site) => {
+          const baseRate = 0.1; // kg per sq ft base rate
+          const siteSize = site.size_sqft || 10000; // Default to 10k sq ft if not set
+
+          // Temperature factor: colder = more salt needed
+          const tempFactor =
+            weather.temperature < -10
+              ? 1.4
+              : weather.temperature < -5
+                ? 1.2
+                : weather.temperature < 0
+                  ? 1.1
+                  : 1.0;
+
+          // Condition factor: more salt for snow/ice conditions
+          const conditionFactor = weather.conditions.includes("Snow")
+            ? 1.3
+            : weather.conditions === "freezingRain"
+              ? 1.4
+              : weather.conditions === "sleet"
+                ? 1.2
+                : 1.0;
+
+          // Snowfall factor: more snow = more salt
+          const snowfallFactor = 1 + weather.snowfall / 10; // 10cm = double the salt
+
+          const saltRecommendation =
+            baseRate * siteSize * tempFactor * conditionFactor * snowfallFactor;
+          const costEstimate = saltRecommendation * 0.5; // $0.50 per kg estimate
+
+          return {
+            salt_recommendation_kg: Math.round(saltRecommendation * 10) / 10, // Round to 1 decimal
+            material_cost_estimate: Math.round(costEstimate * 100) / 100, // Round to 2 decimals
+            temperature_factor: tempFactor,
+            condition_factor: conditionFactor,
+          };
+        };
+
+        const calculations = calculateMaterialUsage(
+          transformedWeatherData,
+          selectedSite
+        );
+
+        setWeatherData(transformedWeatherData);
+        setCalculations(calculations);
+
+        // Auto-fill recommended amounts
+        setValue("salt_used_kg", calculations.salt_recommendation_kg);
+
+        toast.success("Weather data loaded successfully");
+      } catch (error) {
+        console.error("Failed to load weather data:", error);
+        toast.error("Failed to load weather data - using fallback values");
+
+        // Fallback to basic data if weather service fails
+        const fallbackWeatherData = {
+          temperature: 0,
+          conditions: "clear" as WeatherCondition,
+          snowfall: 0,
+          trend: "steady" as WeatherTrend,
+          forecast_confidence: 0.1,
+        };
+
+        const fallbackCalculations = {
+          salt_recommendation_kg: 25,
+          material_cost_estimate: 12.5,
+          temperature_factor: 1.0,
           condition_factor: 1.0,
         };
 
-        setWeatherData(mockWeatherData);
-        setCalculations(mockCalculations);
-
-        // Auto-fill recommended amounts
-        setValue("salt_used_kg", mockCalculations.salt_recommendation_kg);
-
-        toast.success("Weather data loaded automatically");
-      } catch {
-        toast.error("Failed to load weather data");
+        setWeatherData(fallbackWeatherData);
+        setCalculations(fallbackCalculations);
+        setValue("salt_used_kg", fallbackCalculations.salt_recommendation_kg);
       } finally {
         setLoading(false);
       }
@@ -256,14 +358,10 @@ export function SnowRemovalForm({
     try {
       const reportData: CreateReportRequest = {
         ...data,
-        // Add additional computed fields
-        gps_coordinates: gpsLocation
-          ? {
-              latitude: gpsLocation.latitude,
-              longitude: gpsLocation.longitude,
-              accuracy: 10, // meters
-            }
-          : undefined,
+        // GPS coordinates as separate fields (matching database schema)
+        gps_latitude: gpsLocation?.latitude,
+        gps_longitude: gpsLocation?.longitude,
+        gps_accuracy: gpsLocation ? 10 : undefined, // 10 meters accuracy
         // These will be auto-filled by the API
         conditions_upon_arrival: "clear" as WeatherCondition,
         precipitation_type: "clear" as WeatherCondition,
