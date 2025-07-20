@@ -155,12 +155,10 @@ export type SnowRemovalReport = {
   submitted_at?: string;
   is_draft: boolean;
 
-  // Geolocation
-  gps_coordinates?: {
-    latitude: number;
-    longitude: number;
-    accuracy: number;
-  };
+  // Geolocation (matching database schema)
+  gps_latitude?: number;
+  gps_longitude?: number;
+  gps_accuracy?: number;
 
   // Weather automation data
   weather_data?: {
