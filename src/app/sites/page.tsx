@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Plus, MapPin, Edit, MoreVertical } from "lucide-react";
+import { Plus, MapPin, Edit, MoreVertical, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -78,8 +78,19 @@ export default function SitesPage() {
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingSite, setEditingSite] = useState<Site | null>(null);
   const [newSite, setNewSite] = useState<NewSiteForm>({
+    name: "",
+    address: "",
+    priority: "medium",
+    size_sqft: "",
+    typical_salt_usage_kg: "",
+    contact_phone: "",
+    special_instructions: "",
+  });
+  const [editSite, setEditSite] = useState<NewSiteForm>({
     name: "",
     address: "",
     priority: "medium",
@@ -170,6 +181,79 @@ export default function SitesPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEditSite = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editSite.name || !editSite.address || !editingSite) {
+      toast.error("Please fill in required fields (Name and Address)");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const siteData = {
+        ...editSite,
+        size_sqft: editSite.size_sqft
+          ? parseInt(editSite.size_sqft)
+          : undefined,
+        typical_salt_usage_kg: editSite.typical_salt_usage_kg
+          ? parseFloat(editSite.typical_salt_usage_kg)
+          : undefined,
+      };
+
+      const response = await fetch(
+        `/api/snow-removal/sites/${editingSite.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(siteData),
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        setSites((prev) =>
+          prev.map((site) => (site.id === editingSite.id ? result.site : site))
+        );
+        setIsEditModalOpen(false);
+        setEditingSite(null);
+        toast.success("Site updated successfully!");
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Failed to update site");
+      }
+    } catch (error) {
+      console.error("Error updating site:", error);
+      toast.error("Failed to update site");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openEditModal = (site: Site) => {
+    setEditingSite(site);
+    setEditSite({
+      name: site.name,
+      address: site.address,
+      priority: site.priority,
+      size_sqft: site.size_sqft?.toString() || "",
+      typical_salt_usage_kg: site.typical_salt_usage_kg?.toString() || "",
+      contact_phone: site.contact_phone || "",
+      special_instructions: site.special_instructions || "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const viewOnMap = (site: Site) => {
+    // Create Google Maps URL with the site address
+    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(site.address)}`;
+    window.open(mapUrl, "_blank");
   };
 
   const getPriorityColor = (priority: string) => {
@@ -329,12 +413,14 @@ export default function SitesPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => openEditModal(site)}
+                            >
                               <Edit className="h-4 w-4 mr-2" />
                               Edit Site
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <MapPin className="h-4 w-4 mr-2" />
+                            <DropdownMenuItem onClick={() => viewOnMap(site)}>
+                              <ExternalLink className="h-4 w-4 mr-2" />
                               View on Map
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -485,6 +571,154 @@ export default function SitesPage() {
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? "Creating..." : "Create Site"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Site Modal */}
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Site</DialogTitle>
+              <DialogDescription>
+                Update the site information.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEditSite} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Site Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={editSite.name}
+                  onChange={(e) =>
+                    setEditSite((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  placeholder="e.g., Main Office Complex"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-address">Address *</Label>
+                <Input
+                  id="edit-address"
+                  value={editSite.address}
+                  onChange={(e) =>
+                    setEditSite((prev) => ({
+                      ...prev,
+                      address: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g., 123 Business Ave, City, ST 12345"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-priority">Priority</Label>
+                  <Select
+                    value={editSite.priority}
+                    onValueChange={(value: "high" | "medium" | "low") =>
+                      setEditSite((prev) => ({ ...prev, priority: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-size_sqft">Size (sq ft)</Label>
+                  <Input
+                    id="edit-size_sqft"
+                    type="number"
+                    value={editSite.size_sqft}
+                    onChange={(e) =>
+                      setEditSite((prev) => ({
+                        ...prev,
+                        size_sqft: e.target.value,
+                      }))
+                    }
+                    placeholder="50000"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-typical_salt_usage_kg">
+                    Salt Usage (kg)
+                  </Label>
+                  <Input
+                    id="edit-typical_salt_usage_kg"
+                    type="number"
+                    step="0.1"
+                    value={editSite.typical_salt_usage_kg}
+                    onChange={(e) =>
+                      setEditSite((prev) => ({
+                        ...prev,
+                        typical_salt_usage_kg: e.target.value,
+                      }))
+                    }
+                    placeholder="100.0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-contact_phone">Contact Phone</Label>
+                  <Input
+                    id="edit-contact_phone"
+                    type="tel"
+                    value={editSite.contact_phone}
+                    onChange={(e) =>
+                      setEditSite((prev) => ({
+                        ...prev,
+                        contact_phone: e.target.value,
+                      }))
+                    }
+                    placeholder="555-1234"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-special_instructions">
+                  Special Instructions
+                </Label>
+                <Textarea
+                  id="edit-special_instructions"
+                  value={editSite.special_instructions}
+                  onChange={(e) =>
+                    setEditSite((prev) => ({
+                      ...prev,
+                      special_instructions: e.target.value,
+                    }))
+                  }
+                  placeholder="Any special notes or instructions for this site..."
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Updating..." : "Update Site"}
                 </Button>
               </div>
             </form>
