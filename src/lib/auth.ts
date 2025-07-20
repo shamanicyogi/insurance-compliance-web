@@ -60,6 +60,17 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user }) {
+      const suspiciousDomains = [
+        "goodpostman.com",
+        "10minutemail.com",
+        "guerrillamail.com",
+      ];
+      const emailDomain = user.email?.split("@")[1];
+      if (suspiciousDomains.includes(emailDomain || "")) {
+        console.log(`Blocked suspicious email domain: ${user.email}`);
+        return false;
+      }
+
       try {
         console.log("SignIn callback triggered for user:", user.email);
 
@@ -78,6 +89,8 @@ export const authOptions: NextAuthOptions = {
           .select("id, auth_user_id")
           .eq("email", user.email)
           .single();
+
+        console.log(existingUser, "existingUser");
 
         if (checkError && checkError.code !== "PGRST116") {
           // PGRST116 is "not found" error, which is expected for new users
