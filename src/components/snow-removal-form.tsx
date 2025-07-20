@@ -678,7 +678,9 @@ export function SnowRemovalForm({
                     type="number"
                     step="0.1"
                     min="0"
-                    value={value || ""}
+                    value={
+                      value !== undefined && value !== null ? String(value) : ""
+                    }
                     onChange={(e) =>
                       onChange(e.target.value ? parseFloat(e.target.value) : 0)
                     }
@@ -699,7 +701,9 @@ export function SnowRemovalForm({
                     type="number"
                     step="0.1"
                     min="0"
-                    value={value || ""}
+                    value={
+                      value !== undefined && value !== null ? String(value) : ""
+                    }
                     onChange={(e) =>
                       onChange(e.target.value ? parseFloat(e.target.value) : 0)
                     }
@@ -720,7 +724,9 @@ export function SnowRemovalForm({
                     type="number"
                     step="0.1"
                     min="0"
-                    value={value || ""}
+                    value={
+                      value !== undefined && value !== null ? String(value) : ""
+                    }
                     onChange={(e) =>
                       onChange(e.target.value ? parseFloat(e.target.value) : 0)
                     }
