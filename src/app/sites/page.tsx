@@ -35,6 +35,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -47,6 +54,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppLayout } from "@/components/app-layout";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Site {
   id: string;
@@ -75,12 +83,17 @@ interface NewSiteForm {
 
 export default function SitesPage() {
   const { status } = useSession();
+  const isMobile = useIsMobile();
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isMobileActionsOpen, setIsMobileActionsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
+  const [selectedMobileSite, setSelectedMobileSite] = useState<Site | null>(
+    null
+  );
   const [newSite, setNewSite] = useState<NewSiteForm>({
     name: "",
     address: "",
@@ -222,7 +235,9 @@ export default function SitesPage() {
           prev.map((site) => (site.id === editingSite.id ? result.site : site))
         );
         setIsEditModalOpen(false);
+        setIsMobileActionsOpen(false);
         setEditingSite(null);
+        setSelectedMobileSite(null);
         toast.success("Site updated successfully!");
       } else {
         const error = await response.json();
@@ -248,6 +263,25 @@ export default function SitesPage() {
       special_instructions: site.special_instructions || "",
     });
     setIsEditModalOpen(true);
+  };
+
+  const openMobileActions = (site: Site) => {
+    setSelectedMobileSite(site);
+    setIsMobileActionsOpen(true);
+  };
+
+  const handleMobileEdit = () => {
+    if (selectedMobileSite) {
+      openEditModal(selectedMobileSite);
+      setIsMobileActionsOpen(false);
+    }
+  };
+
+  const handleMobileViewMap = () => {
+    if (selectedMobileSite) {
+      viewOnMap(selectedMobileSite);
+      setIsMobileActionsOpen(false);
+    }
   };
 
   const viewOnMap = (site: Site) => {
@@ -372,64 +406,92 @@ export default function SitesPage() {
                 </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Size (sq ft)</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-12"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sites.map((site) => (
-                    <TableRow key={site.id}>
-                      <TableCell className="font-medium">{site.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {site.address}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getPriorityColor(site.priority)}>
-                          {site.priority}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {site.size_sqft?.toLocaleString() || "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={site.is_active ? "default" : "secondary"}
-                        >
-                          {site.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead className="hidden sm:table-cell">
+                        Address
+                      </TableHead>
+                      <TableHead>Priority</TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Size (sq ft)
+                      </TableHead>
+                      <TableHead className="hidden sm:table-cell">
+                        Status
+                      </TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sites.map((site) => (
+                      <TableRow key={site.id}>
+                        <TableCell className="font-medium">
+                          <div>
+                            <div>{site.name}</div>
+                            {/* Show address on mobile when address column is hidden */}
+                            <div className="text-xs text-muted-foreground sm:hidden">
+                              {site.address}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground hidden sm:table-cell">
+                          {site.address}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getPriorityColor(site.priority)}>
+                            {site.priority}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {site.size_sqft?.toLocaleString() || "N/A"}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Badge
+                            variant={site.is_active ? "default" : "secondary"}
+                          >
+                            {site.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {isMobile ? (
+                            <Button
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              onClick={() => openMobileActions(site)}
+                            >
                               <MoreVertical className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => openEditModal(site)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Site
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => viewOnMap(site)}>
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              View on Map
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                          ) : (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => openEditModal(site)}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit Site
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => viewOnMap(site)}
+                                >
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  View on Map
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -724,6 +786,34 @@ export default function SitesPage() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Mobile Actions Sheet */}
+        <Sheet open={isMobileActionsOpen} onOpenChange={setIsMobileActionsOpen}>
+          <SheetContent side="bottom" className="h-auto">
+            <SheetHeader>
+              <SheetTitle>{selectedMobileSite?.name}</SheetTitle>
+              <SheetDescription>{selectedMobileSite?.address}</SheetDescription>
+            </SheetHeader>
+            <div className="grid gap-4 py-4">
+              <Button
+                className="w-full justify-start gap-2"
+                variant="outline"
+                onClick={handleMobileEdit}
+              >
+                <Edit className="h-4 w-4" />
+                Edit Site
+              </Button>
+              <Button
+                className="w-full justify-start gap-2"
+                variant="outline"
+                onClick={handleMobileViewMap}
+              >
+                <ExternalLink className="h-4 w-4" />
+                View on Map
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </AppLayout>
   );
