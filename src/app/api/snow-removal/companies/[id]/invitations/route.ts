@@ -117,10 +117,16 @@ async function POST(
       !employee ||
       !["owner", "admin"].includes(employee.role)
     ) {
+      console.log("Access denied 💜");
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
-    const companyName = employee.companies.at(0)?.name;
+    console.log(employee.companies, "employee.companies 💜");
+
+    // TODO - SQL MIGRATION companieS (plural) to company (singular)
+    const companyName = (
+      employee.companies as unknown as { id: string; name: string }
+    ).name;
 
     // Check if email is already invited and not expired
     const { data: existingInvitation } = await supabase
