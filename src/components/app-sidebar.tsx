@@ -36,7 +36,7 @@ const allNavItems = [
     title: "Snow Reports",
     url: "/snow-removal",
     icon: IconSnowflake,
-    roles: ["owner", "admin", "manager"], // Only managers and above
+    roles: ["owner", "admin", "manager", "employee"], // Only managers and above
   },
   {
     title: "Team",

@@ -110,16 +110,54 @@ async function GET(req: NextRequest) {
       );
     }
 
+    // Helper function for retrying API calls
+    const fetchWithRetry = async (
+      url: string,
+      maxRetries = 2
+    ): Promise<Response> => {
+      let lastError: Error | null = null;
+
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const timeout = 15000 + attempt * 5000; // 15s, 20s, 25s
+          console.log(
+            `Weather API attempt ${attempt + 1}/${maxRetries + 1} with ${timeout}ms timeout`
+          );
+
+          const response = await fetch(url, {
+            signal: AbortSignal.timeout(timeout),
+            headers: {
+              "User-Agent": "SnowRemovalApp/1.0",
+            },
+          });
+
+          return response; // Return successful response
+        } catch (error) {
+          lastError = error as Error;
+          console.warn(
+            `Weather API attempt ${attempt + 1} failed:`,
+            lastError.message
+          );
+
+          // If it's the last attempt, throw the error
+          if (attempt === maxRetries) {
+            throw lastError;
+          }
+
+          // Wait before retrying (exponential backoff)
+          const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+
+      throw lastError || new Error("Unknown error in fetchWithRetry");
+    };
+
     try {
-      // Fetch current weather with timeout
+      // Fetch current weather with retry logic
       const currentWeatherUrl = `${OPENWEATHER_BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
 
-      const currentResponse = await fetch(currentWeatherUrl, {
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-        headers: {
-          "User-Agent": "SnowRemovalApp/1.0",
-        },
-      });
+      const currentResponse = await fetchWithRetry(currentWeatherUrl);
 
       if (!currentResponse.ok) {
         if (currentResponse.status === 401) {
@@ -143,18 +181,19 @@ async function GET(req: NextRequest) {
 
       const currentData = await currentResponse.json();
 
-      // Fetch forecast for trend analysis (with timeout)
+      // Fetch forecast for trend analysis (with retry)
       const forecastUrl = `${OPENWEATHER_BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
-      const forecastResponse = await fetch(forecastUrl, {
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-        headers: {
-          "User-Agent": "SnowRemovalApp/1.0",
-        },
-      });
 
-      const forecastData = forecastResponse.ok
-        ? await forecastResponse.json()
-        : { list: [] };
+      let forecastData = { list: [] };
+      try {
+        const forecastResponse = await fetchWithRetry(forecastUrl);
+        forecastData = forecastResponse.ok
+          ? await forecastResponse.json()
+          : { list: [] };
+      } catch (error) {
+        console.warn("Forecast fetch failed, using empty data:", error);
+        // Continue with empty forecast data instead of failing
+      }
 
       // Extract weather data
       const temperature = currentData.main.temp;
@@ -238,12 +277,41 @@ async function GET(req: NextRequest) {
     } catch (error) {
       secureError("Error fetching weather data:", error);
 
-      // Return proper error instead of fallback data
+      // Provide specific error messages based on error type
+      let errorMessage = "Unable to fetch weather data. Please try again.";
+      let errorCode = "WEATHER_FETCH_ERROR";
+
+      if (error instanceof Error) {
+        if (
+          error.message.includes("timeout") ||
+          error.name === "TimeoutError"
+        ) {
+          errorMessage =
+            "Weather service is responding slowly. Please try again in a moment.";
+          errorCode = "WEATHER_TIMEOUT";
+        } else if (
+          error.message.includes("network") ||
+          error.message.includes("fetch")
+        ) {
+          errorMessage =
+            "Network connection issue. Please check your internet connection.";
+          errorCode = "NETWORK_ERROR";
+        } else if (error.message.includes("authentication")) {
+          errorMessage =
+            "Weather service authentication failed. Please contact support.";
+          errorCode = "AUTH_ERROR";
+        }
+      }
+
       return NextResponse.json(
         {
-          error: "Unable to fetch weather data. Please try again.",
-          code: "WEATHER_FETCH_ERROR",
+          error: errorMessage,
+          code: errorCode,
           retryable: true,
+          details:
+            process.env.NODE_ENV === "development" && error instanceof Error
+              ? error.message
+              : undefined,
         },
         { status: 503 }
       );

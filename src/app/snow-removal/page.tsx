@@ -28,6 +28,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { SnowRemovalForm } from "@/components/snow-removal-form";
+import { DraftReportsList } from "@/components/draft-reports-list";
 import { AppLayout } from "@/components/app-layout";
 import type { SnowRemovalReport, Site } from "@/types/snow-removal";
 
@@ -68,16 +69,23 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
 
 export default function SnowRemovalPage() {
   const { status } = useSession();
+
+  // Navigation state
   const [activeTab, setActiveTab] = useState("reports");
+
+  // Filter states
+  const [dateFilter, setDateFilter] = useState("");
+  const [siteFilter, setSiteFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const [reports, setReports] = useState<ReportsResponse["reports"]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [reportsLoading, setReportsLoading] = useState(true);
-
-  // Filters
-  const [dateFilter, setDateFilter] = useState("");
-  const [siteFilter, setSiteFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [editingReport, setEditingReport] = useState<
+    ReportsResponse["reports"][0] | null
+  >(null);
+  const [refreshDrafts, setRefreshDrafts] = useState(0);
 
   // Redirect if not authenticated
   // useEffect(() => {
@@ -153,6 +161,19 @@ export default function SnowRemovalPage() {
       }
     };
     loadReports();
+    // Trigger draft refresh
+    setRefreshDrafts((prev) => prev + 1);
+  };
+
+  const handleEditDraft = (report: ReportsResponse["reports"][0]) => {
+    setEditingReport(report);
+    setActiveTab("create");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingReport(null);
+    // Trigger draft refresh to reload the list
+    setRefreshDrafts((prev) => prev + 1);
   };
 
   const clearFilters = () => {
@@ -259,9 +280,13 @@ export default function SnowRemovalPage() {
               <FileText className="h-4 w-4" />
               Reports
             </TabsTrigger>
+            <TabsTrigger value="drafts" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Drafts ({reports.filter((r) => r.is_draft).length})
+            </TabsTrigger>
             <TabsTrigger value="create" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              Create Report
+              {editingReport ? "Edit Report" : "Create Report"}
             </TabsTrigger>
           </TabsList>
 
@@ -433,18 +458,54 @@ export default function SnowRemovalPage() {
             </div>
           </TabsContent>
 
-          {/* Create Report Tab */}
-          <TabsContent value="create" className="space-y-4">
+          {/* Drafts Tab */}
+          <TabsContent value="drafts" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Create New Snow Removal Report</CardTitle>
+                <CardTitle>Draft Reports</CardTitle>
                 <CardDescription>
-                  Fill out the details of your snow removal activities. Weather
-                  data and material calculations are automated.
+                  Manage your draft reports. Edit, submit, or delete drafts as
+                  needed.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <SnowRemovalForm onSubmit={handleReportSubmitted} />
+                <DraftReportsList
+                  onEditDraft={handleEditDraft}
+                  refreshTrigger={refreshDrafts}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Create/Edit Report Tab */}
+          <TabsContent value="create" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>
+                      {editingReport
+                        ? "Edit Draft Report"
+                        : "Create New Snow Removal Report"}
+                    </CardTitle>
+                    <CardDescription>
+                      {editingReport
+                        ? "Update your draft report and submit when ready."
+                        : "Fill out the details of your snow removal activities. Weather data and material calculations are automated."}
+                    </CardDescription>
+                  </div>
+                  {editingReport && (
+                    <Button variant="outline" onClick={handleCancelEdit}>
+                      Cancel Edit
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <SnowRemovalForm
+                  existingReport={editingReport}
+                  onSubmit={handleReportSubmitted}
+                />
               </CardContent>
             </Card>
           </TabsContent>

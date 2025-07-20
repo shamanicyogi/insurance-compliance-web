@@ -45,6 +45,7 @@ import type {
   CreateReportRequest,
   WeatherCondition,
   WeatherTrend,
+  SnowRemovalReportWithRelations,
 } from "@/types/snow-removal";
 
 interface WeatherData {
@@ -83,7 +84,13 @@ const snowRemovalSchema = z.object({
     "salt",
     "combination",
   ]),
-  follow_up_plans: z.enum(["allClear", "activeSnowfall"]),
+  follow_up_plans: z.enum([
+    "allClear",
+    "activeSnowfall",
+    "monitorConditions",
+    "returnInHour",
+    "callSupervisor",
+  ]),
   salt_used_kg: z.number().min(0).optional(),
   deicing_material_kg: z.number().min(0).optional(),
   salt_alternative_kg: z.number().min(0).optional(),
@@ -95,6 +102,7 @@ type FormData = z.infer<typeof snowRemovalSchema>;
 
 interface SnowRemovalFormProps {
   reportId?: string;
+  existingReport?: SnowRemovalReportWithRelations; // For editing drafts
   onSubmit?: (data: CreateReportRequest) => void;
   className?: string;
 }
@@ -129,6 +137,7 @@ const WeatherConditionBadge = ({
 
 export function SnowRemovalForm({
   // reportId,
+  existingReport,
   onSubmit,
   className,
 }: SnowRemovalFormProps) {
@@ -147,21 +156,41 @@ export function SnowRemovalForm({
 
   const form = useForm<FormData>({
     resolver: zodResolver(snowRemovalSchema),
-    defaultValues: {
-      date: new Date().toISOString().split("T")[0],
-      dispatched_for: new Date().toTimeString().slice(0, 5),
-      start_time: new Date().toTimeString().slice(0, 5),
-      is_draft: true,
-      salt_used_kg: 0,
-      deicing_material_kg: 0,
-      salt_alternative_kg: 0,
-      // Fix controlled/uncontrolled input warnings
-      truck: "",
-      tractor: "",
-      handwork: "",
-      finish_time: "",
-      comments: "",
-    },
+    defaultValues: existingReport
+      ? {
+          // Use existing report data for editing
+          site_id: existingReport.site_id,
+          date: existingReport.date,
+          dispatched_for: existingReport.dispatched_for,
+          start_time: existingReport.start_time,
+          finish_time: existingReport.finish_time || "",
+          truck: existingReport.truck || "",
+          tractor: existingReport.tractor || "",
+          handwork: existingReport.handwork || "",
+          snow_removal_method: existingReport.snow_removal_method,
+          follow_up_plans: existingReport.follow_up_plans,
+          salt_used_kg: existingReport.salt_used_kg || 0,
+          deicing_material_kg: existingReport.deicing_material_kg || 0,
+          salt_alternative_kg: existingReport.salt_alternative_kg || 0,
+          comments: existingReport.comments || "",
+          is_draft: existingReport.is_draft,
+        }
+      : {
+          // Default values for new reports
+          date: new Date().toISOString().split("T")[0],
+          dispatched_for: new Date().toTimeString().slice(0, 5),
+          start_time: new Date().toTimeString().slice(0, 5),
+          is_draft: true,
+          salt_used_kg: 0,
+          deicing_material_kg: 0,
+          salt_alternative_kg: 0,
+          // Fix controlled/uncontrolled input warnings
+          truck: "",
+          tractor: "",
+          handwork: "",
+          finish_time: "",
+          comments: "",
+        },
   });
 
   const {
