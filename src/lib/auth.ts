@@ -71,11 +71,12 @@ export const authOptions: NextAuthOptions = {
         // NextAuth + SupabaseAdapter creates user in auth.users automatically
         // We also need to create corresponding record in public.users for our app profiles
 
-        // Check if user already exists in our custom public.users table
+        // Check if user already exists in our custom public.users table BY EMAIL
+        // (to avoid UUID format issues with different OAuth providers)
         const { data: existingUser, error: checkError } = await supabaseAdmin
           .from("users")
-          .select("id")
-          .eq("id", user.id)
+          .select("id, auth_user_id")
+          .eq("email", user.email)
           .single();
 
         if (checkError && checkError.code !== "PGRST116") {
@@ -84,19 +85,38 @@ export const authOptions: NextAuthOptions = {
           return false;
         }
 
-        // If user doesn't exist in our custom table, create them
+        // If user doesn't exist in our custom table, we need to get their actual Supabase UUID
         if (!existingUser) {
           console.log(
             "Creating new user profile in public.users for:",
             user.email
           );
 
+          // Get the actual Supabase auth user UUID by email
+          const { data: authUser, error: authError } =
+            await supabaseAdmin.auth.admin.listUsers();
+
+          if (authError) {
+            console.error("Error fetching auth users:", authError);
+            return false;
+          }
+
+          // Find the user in auth.users by email
+          const supabaseUser = authUser.users.find(
+            (u) => u.email === user.email
+          );
+
+          if (!supabaseUser) {
+            console.error("Could not find Supabase auth user for:", user.email);
+            return false;
+          }
+
           const { error: insertError } = await supabaseAdmin
             .from("users")
             .insert({
-              id: user.id,
+              id: supabaseUser.id, // Use the Supabase UUID
               email: user.email,
-              auth_user_id: user.id,
+              auth_user_id: supabaseUser.id,
               display_name: user.name || user.email?.split("@")[0],
               created_at: new Date().toISOString(),
             });
