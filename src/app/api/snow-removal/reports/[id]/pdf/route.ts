@@ -127,8 +127,15 @@ async function GET(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function generateReportHTML(report: any, company?: any): string {
+function generateReportHTML(
+  report: any,
+  company?: {
+    name: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+  } | null
+): string {
   const formatTime = (timeString: string) => timeString || "Not set";
   const formatTemp = (temp: number) => `${temp}°C`;
   const formatCapitalized = (str: string) =>
@@ -443,7 +450,7 @@ function generateReportHTML(report: any, company?: any): string {
     </div>
 
     <div class="footer">
-        Generated on ${format(new Date(), "PPpp")} | ${report.companies?.name || "Snow Removal System"}
+        Generated on ${format(new Date(), "PPpp")} | ${company?.name || "Snow Removal System"}
     </div>
 </body>
 </html>`;

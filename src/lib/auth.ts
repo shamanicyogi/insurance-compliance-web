@@ -278,7 +278,6 @@ export const authOptions: NextAuthOptions = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async signIn(params: any) {
       const { user } = params;
-
       // Block suspicious domains
       const suspiciousDomains = [
         "goodpostman.com",
