@@ -18,6 +18,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
+import { Shield } from "lucide-react";
 
 const data = {
   user: {
@@ -66,11 +67,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <a href="#">
-                <span
-                  className="text-base font-semibold"
-                  style={{ fontFamily: "TrueLies" }}
-                >
-                  SnowTracker
+                {/* className="text-base font-semibold" */}
+                <span className="flex items-center gap-2 font-bold text-lg">
+                  <Shield className="h-5 w-5 text-primary" />
+                  SlipCheck
                 </span>
               </a>
             </SidebarMenuButton>

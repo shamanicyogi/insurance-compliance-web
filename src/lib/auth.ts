@@ -52,7 +52,11 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   callbacks: {
-    async signIn({ user }) {
+    async signIn(params) {
+      const { user } = params;
+
+      console.log(params, "params 💜💜💜💜💜");
+
       // Block suspicious domains
       const suspiciousDomains = [
         "goodpostman.com",
@@ -92,9 +96,13 @@ export const authOptions: NextAuthOptions = {
         if (!existingUser) {
           console.log("Creating new user profile for:", user.email);
 
+          console.log(user, "user 💜");
+
           const { error: insertError } = await supabaseAdmin
             .from("users")
             .insert({
+              id: user.id,
+              // auth_user_id: user.id, // ← Store Google/auth ID here
               email: user.email,
               display_name: user.name || user.email?.split("@")[0],
               created_at: new Date().toISOString(),

@@ -53,7 +53,7 @@ async function POST(req: NextRequest) {
         );
       }
 
-      // Return signup URL with invitation code
+      // Return signup URL with invitation cgode
       return NextResponse.json(
         {
           requiresAuth: true,

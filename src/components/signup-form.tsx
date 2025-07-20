@@ -8,6 +8,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/ui/icons";
 import { toast } from "sonner";
+import { Building2, Shield } from "lucide-react";
 
 type Provider = "google" | "apple" | "strava";
 
@@ -16,7 +17,10 @@ export function SignUpForm() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  const invitationCode = searchParams.get("invitationCode");
+  const invitationCode =
+    searchParams.get("invitation") || searchParams.get("invitationCode");
+  const companyName = searchParams.get("company");
+  const inviterName = searchParams.get("inviter");
   const prefilledEmail = searchParams.get("email");
 
   const [isLoading, setIsLoading] = useState<
@@ -65,7 +69,7 @@ export function SignUpForm() {
       setIsLoading((prev) => ({ ...prev, [provider]: true }));
       const result = await signIn(provider, {
         callbackUrl: invitationCode
-          ? `/signup?invitationCode=${invitationCode}`
+          ? `/signup?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}`
           : "/dashboard",
         redirect: false,
         prompt: "select_account",
@@ -87,6 +91,38 @@ export function SignUpForm() {
 
   return (
     <div className="space-y-6">
+      {/* Rich invitation context banner */}
+      {invitationCode && companyName && (
+        <div className="text-center space-y-3 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+          <div className="flex justify-center">
+            <div className="p-2 bg-green-100 rounded-full">
+              <Building2 className="h-6 w-6 text-green-600" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">
+              You&apos;ve been invited to join {companyName}
+            </h1>
+            {inviterName && inviterName !== "Your team" && (
+              <p className="text-sm text-gray-600 mt-1">
+                {inviterName} invited you to collaborate
+              </p>
+            )}
+            <div className="flex items-center justify-center mt-2 gap-1">
+              <Shield className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium text-green-700">
+                Create your account to join the team
+              </span>
+            </div>
+          </div>
+          {prefilledEmail && (
+            <p className="text-sm text-green-600 font-medium border-t border-green-200 pt-3">
+              Invited email: {prefilledEmail}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="space-y-2 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">
           {invitationCode ? "Join Your Team" : "Create an account"}
@@ -96,7 +132,7 @@ export function SignUpForm() {
             ? "Create your account to accept the company invitation"
             : "Choose how you'd like to join SlipCheck"}
         </p>
-        {prefilledEmail && (
+        {prefilledEmail && !companyName && (
           <p className="text-sm text-blue-600 font-medium">
             Invited: {prefilledEmail}
           </p>
@@ -126,7 +162,7 @@ export function SignUpForm() {
 
         <div className="text-center">
           <Link
-            href={`/login${invitationCode ? `?invitationCode=${invitationCode}&email=${encodeURIComponent(prefilledEmail || "")}` : ""}`}
+            href={`/login${invitationCode ? `?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}&email=${encodeURIComponent(prefilledEmail || "")}` : ""}`}
             className="text-sm text-primary hover:underline"
           >
             Use magic link instead →
@@ -137,7 +173,7 @@ export function SignUpForm() {
       <div className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link
-          href={`/login${invitationCode ? `?invitationCode=${invitationCode}&email=${encodeURIComponent(prefilledEmail || "")}` : ""}`}
+          href={`/login${invitationCode ? `?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}&email=${encodeURIComponent(prefilledEmail || "")}` : ""}`}
           className="font-medium text-primary hover:underline"
         >
           Sign in

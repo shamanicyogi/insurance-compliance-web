@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { GoogleIcon } from "@/components/ui/icons";
 import { toast } from "sonner";
 import Link from "next/link";
+import { Building2, Shield } from "lucide-react";
 
 type Provider = "google" | "apple" | "strava";
 
@@ -19,7 +20,10 @@ React.ComponentProps<"form">) {
   const router = useRouter();
   const { data: session } = useSession();
 
-  const invitationCode = searchParams.get("invitationCode");
+  const invitationCode =
+    searchParams.get("invitation") || searchParams.get("invitationCode");
+  const companyName = searchParams.get("company");
+  const inviterName = searchParams.get("inviter");
   const prefilledEmail = searchParams.get("email");
 
   const [isLoading, setIsLoading] = React.useState<
@@ -69,7 +73,7 @@ React.ComponentProps<"form">) {
       setIsLoading((prev) => ({ ...prev, [provider]: true }));
       const result = await signIn(provider, {
         callbackUrl: invitationCode
-          ? `/login?invitationCode=${invitationCode}`
+          ? `/login?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}`
           : "/dashboard",
         redirect: false,
         prompt: "select_account",
@@ -101,7 +105,7 @@ React.ComponentProps<"form">) {
       const result = await signIn("email", {
         email,
         callbackUrl: invitationCode
-          ? `/login?invitationCode=${invitationCode}`
+          ? `/login?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}`
           : "/dashboard",
         redirect: false,
       });
@@ -124,6 +128,33 @@ React.ComponentProps<"form">) {
 
   return (
     <div className="space-y-6">
+      {/* Rich invitation context banner */}
+      {invitationCode && companyName && (
+        <div className="text-center space-y-3 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+          <div className="flex justify-center">
+            <div className="p-2 bg-blue-100 rounded-full">
+              <Building2 className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">
+              You&apos;ve been invited to join {companyName}
+            </h1>
+            {inviterName && inviterName !== "Your team" && (
+              <p className="text-sm text-gray-600 mt-1">
+                {inviterName} invited you to collaborate
+              </p>
+            )}
+            <div className="flex items-center justify-center mt-2 gap-1">
+              <Shield className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-700">
+                Sign in or create an account to get started
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2 text-center">
         <h1 className="text-2xl font-bold">
           {invitationCode ? "Join Your Team" : "Welcome back"}
@@ -188,7 +219,7 @@ React.ComponentProps<"form">) {
       <div className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Link
-          href={`/signup${invitationCode ? `?invitationCode=${invitationCode}&email=${encodeURIComponent(email)}` : ""}`}
+          href={`/signup${invitationCode ? `?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}&email=${encodeURIComponent(email)}` : ""}`}
           className="font-medium text-primary hover:underline"
         >
           Sign up

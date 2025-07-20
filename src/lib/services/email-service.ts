@@ -27,17 +27,20 @@ export async function sendInvitationEmail(data: InvitationEmailData) {
 
     const { email, companyName, invitationCode, inviterName, role } = data;
 
-    // Create join URL
-    const joinUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/snow-removal/onboarding?invitation=${invitationCode}`;
+    // Create rich login URL with invitation context
+    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const loginUrl = `${baseUrl}/login?invitation=${invitationCode}&company=${encodeURIComponent(companyName)}&inviter=${encodeURIComponent(inviterName || "Your team")}&email=${encodeURIComponent(email)}`;
+    const signupUrl = `${baseUrl}/signup?invitation=${invitationCode}&company=${encodeURIComponent(companyName)}&inviter=${encodeURIComponent(inviterName || "Your team")}&email=${encodeURIComponent(email)}`;
 
     const result = await resendClient.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || "noreply@yourcompany.com",
+      from: process.env.EMAIL_FROM || "onboarding@slipcheck.pro",
       to: email,
-      subject: `You're invited to join ${companyName}`,
+      subject: `You're invited to join ${companyName} on SlipCheck`,
       html: createInvitationEmailTemplate({
         companyName,
         invitationCode,
-        joinUrl,
+        loginUrl,
+        signupUrl,
         inviterName,
         role,
       }),
@@ -56,13 +59,21 @@ export async function sendInvitationEmail(data: InvitationEmailData) {
 interface EmailTemplateData {
   companyName: string;
   invitationCode: string;
-  joinUrl: string;
+  loginUrl: string;
+  signupUrl: string;
   inviterName?: string;
   role: string;
 }
 
 function createInvitationEmailTemplate(data: EmailTemplateData): string {
-  const { companyName, invitationCode, joinUrl, inviterName, role } = data;
+  const {
+    companyName,
+    invitationCode,
+    loginUrl,
+    signupUrl,
+    inviterName,
+    role,
+  } = data;
 
   return `
     <!DOCTYPE html>
@@ -139,21 +150,31 @@ function createInvitationEmailTemplate(data: EmailTemplateData): string {
       </div>
       
       <div class="content">
-        ${inviterName ? `<p><strong>${inviterName}</strong> has invited you to join the ${companyName} team.</p>` : `<p>You've been invited to join the ${companyName} team.</p>`}
+        ${inviterName ? `<p><strong>${inviterName}</strong> has invited you to join the ${companyName} team on SlipCheck.</p>` : `<p>You've been invited to join the ${companyName} team on SlipCheck.</p>`}
         
-        <p>Use this invitation code to join:</p>
+        <p>Click below to join your team:</p>
+        
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${loginUrl}" class="cta-button">Join ${companyName}</a>
+        </div>
+        
+        <p style="text-align: center; margin: 10px 0;">
+          <span style="font-size: 14px; color: #6b7280;">
+            Already have an account? <a href="${loginUrl}" style="color: #3b82f6;">Sign in here</a><br/>
+            New to SlipCheck? <a href="${signupUrl}" style="color: #3b82f6;">Create account here</a>
+          </span>
+        </p>
         
         <div class="invitation-code">${invitationCode}</div>
-        
-        <p style="text-align: center;">
-          <a href="${joinUrl}" class="cta-button">Accept Invitation</a>
+        <p style="text-align: center; font-size: 12px; color: #6b7280;">
+          Invitation Code (if needed)
         </p>
         
         <p><strong>What's next?</strong></p>
         <ol>
-          <li>Click the button above or copy the invitation code</li>
-          <li>Create your account or sign in</li>
-          <li>Enter the invitation code if needed</li>
+          <li>Click the "Join ${companyName}" button above</li>
+          <li>Sign in with your existing account or create a new one</li>
+          <li>You'll automatically be added to the team</li>
           <li>Start managing snow removal reports!</li>
         </ol>
         

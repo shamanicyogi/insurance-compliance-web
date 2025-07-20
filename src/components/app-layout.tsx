@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -11,7 +12,6 @@ import { MobileNavBar } from "@/components/mobile-nav-bar";
 import { ModalProvider, useModal } from "@/lib/contexts/modal-context";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MobileViewProvider } from "@/lib/contexts/mobile-view-context";
-import { MobileViewManager } from "./mobile-view-manager";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 
@@ -52,11 +52,18 @@ interface AppLayoutProps {
 export function AppLayout({ children, className }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted && status !== "loading" && !session) {
+      router.push("/login");
+    }
+  }, [mounted, status, session, router]);
 
   if (!mounted) {
     return null; // Prevent hydration mismatch
@@ -67,7 +74,7 @@ export function AppLayout({ children, className }: AppLayoutProps) {
   }
 
   if (!session) {
-    return <div className="p-8">Please sign in to continue.</div>;
+    return <div className="p-8">Redirecting to login...</div>;
   }
 
   if (isMobile) {
@@ -82,7 +89,6 @@ export function AppLayout({ children, className }: AppLayoutProps) {
               <MobileNavBar />
               <GlobalModals />
             </div>
-            <MobileViewManager dashboard={<div>Dashboard</div>} />
           </div>
         </ModalProvider>
       </MobileViewProvider>
@@ -90,16 +96,16 @@ export function AppLayout({ children, className }: AppLayoutProps) {
   }
 
   return (
-    <ModalProvider>
-      <SidebarProvider>
+    <SidebarProvider>
+      <ModalProvider>
         <AppSidebar />
         <SidebarInset>
-          <main className="flex-1 overflow-auto bg-background p-8">
-            <div className={cn("mx-auto", className)}>{children}</div>
+          <main className="flex-1 overflow-auto">
+            <div className={cn("p-6", className)}>{children}</div>
           </main>
-          <GlobalModals />
         </SidebarInset>
-      </SidebarProvider>
-    </ModalProvider>
+        <GlobalModals />
+      </ModalProvider>
+    </SidebarProvider>
   );
 }
