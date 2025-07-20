@@ -111,7 +111,8 @@ async function POST(req: NextRequest) {
     }
 
     // Verify employee has access to this site (either assigned or is manager+)
-    const canAccessAnySite = ["owner", "admin", "manager"].includes(
+    const canAccessAnySite = ["owner", "admin", "manager", "employee"].includes(
+      // TODO - Implement site assignment logic (i.e. remove "employee" from this list)
       employee.role
     );
     if (

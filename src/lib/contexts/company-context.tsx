@@ -6,14 +6,14 @@ import type {
   Company,
   Employee,
   CompanyRole,
-  CompanySettings,
+  // CompanySettings, // TODO: Uncomment when implementing company settings
 } from "@/types/snow-removal";
 
 interface CompanyContextType {
   // Company data
   company: Company | null;
   employee: Employee | null;
-  settings: CompanySettings | null;
+  // settings: CompanySettings | null; // TODO: Add back when implementing company settings
 
   // User permissions
   userRole: CompanyRole | null;
@@ -52,7 +52,6 @@ export function CompanyProvider({ children }: CompanyProviderProps) {
 
   const [company, setCompany] = useState<Company | null>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
-  const [settings, setSettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,24 +87,17 @@ export function CompanyProvider({ children }: CompanyProviderProps) {
 
       if (employeeData.employee?.company_id) {
         // Load company data
-        const [companyResponse, settingsResponse] = await Promise.all([
-          fetch(
-            `/api/snow-removal/companies/${employeeData.employee.company_id}`
-          ),
-          fetch(
-            `/api/snow-removal/companies/${employeeData.employee.company_id}/settings`
-          ),
-        ]);
+        const companyResponse = await fetch(
+          `/api/snow-removal/companies/${employeeData.employee.company_id}`
+        );
 
         if (companyResponse.ok) {
           const companyData = await companyResponse.json();
           setCompany(companyData.company);
         }
 
-        if (settingsResponse.ok) {
-          const settingsData = await settingsResponse.json();
-          setSettings(settingsData.settings);
-        }
+        // TODO: Implement company settings endpoint when needed
+        // Settings functionality can be added later when required
       }
     } catch (err) {
       console.error("Error loading company data:", err);
@@ -156,7 +148,7 @@ export function CompanyProvider({ children }: CompanyProviderProps) {
     // Company data
     company,
     employee,
-    settings,
+    // settings, // Removed settings from context value
 
     // User permissions
     userRole,
