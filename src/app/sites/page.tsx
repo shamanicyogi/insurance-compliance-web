@@ -153,12 +153,76 @@ export default function SitesPage() {
     setIsSubmitting(true);
 
     try {
+      // Try to geocode the address to get coordinates
+      let coordinates = null;
+      try {
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+        if (apiKey && apiKey !== "undefined") {
+          // Use Google Geocoding API if key is available
+          const geocodeResponse = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+              newSite.address
+            )}&key=${apiKey}`
+          );
+
+          if (geocodeResponse.ok) {
+            const geocodeData = await geocodeResponse.json();
+            if (geocodeData.results && geocodeData.results.length > 0) {
+              const location = geocodeData.results[0].geometry.location;
+              coordinates = {
+                latitude: location.lat,
+                longitude: location.lng,
+              };
+              toast.success("Address geocoded successfully for weather data");
+            } else if (geocodeData.status === "ZERO_RESULTS") {
+              toast.warning(
+                "Address not found - weather data will not be available"
+              );
+            }
+          }
+        } else {
+          // Fallback to free OpenStreetMap Nominatim service
+          const geocodeResponse = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+              newSite.address
+            )}&limit=1`
+          );
+
+          if (geocodeResponse.ok) {
+            const geocodeData = await geocodeResponse.json();
+            if (geocodeData && geocodeData.length > 0) {
+              coordinates = {
+                latitude: parseFloat(geocodeData[0].lat),
+                longitude: parseFloat(geocodeData[0].lon),
+              };
+              toast.success(
+                "Address geocoded successfully for weather data (using free service)"
+              );
+            } else {
+              toast.warning(
+                "Address not found - weather data will not be available"
+              );
+            }
+          }
+        }
+      } catch (geocodeError) {
+        console.warn(
+          "Geocoding failed, proceeding without coordinates:",
+          geocodeError
+        );
+        toast.warning(
+          "Could not geocode address - weather data will not be available"
+        );
+      }
+
       const siteData = {
         ...newSite,
         size_sqft: newSite.size_sqft ? parseInt(newSite.size_sqft) : undefined,
         typical_salt_usage_kg: newSite.typical_salt_usage_kg
           ? parseFloat(newSite.typical_salt_usage_kg)
           : undefined,
+        ...coordinates, // Add latitude and longitude if available
       };
 
       const response = await fetch("/api/snow-removal/sites", {
@@ -183,7 +247,9 @@ export default function SitesPage() {
           contact_phone: "",
           special_instructions: "",
         });
-        toast.success("Site created successfully!");
+        toast.success(
+          `Site created successfully${coordinates ? " with weather data enabled" : ""}`
+        );
       } else {
         const error = await response.json();
         toast.error(error.message || "Failed to create site");
@@ -207,6 +273,71 @@ export default function SitesPage() {
     setIsSubmitting(true);
 
     try {
+      // Try to geocode the address to get coordinates (only if address changed)
+      let coordinates = null;
+      if (editSite.address !== editingSite.address) {
+        try {
+          const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+          if (apiKey && apiKey !== "undefined") {
+            // Use Google Geocoding API if key is available
+            const geocodeResponse = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
+                editSite.address
+              )}&key=${apiKey}`
+            );
+
+            if (geocodeResponse.ok) {
+              const geocodeData = await geocodeResponse.json();
+              if (geocodeData.results && geocodeData.results.length > 0) {
+                const location = geocodeData.results[0].geometry.location;
+                coordinates = {
+                  latitude: location.lat,
+                  longitude: location.lng,
+                };
+                toast.success("Address geocoded successfully for weather data");
+              } else if (geocodeData.status === "ZERO_RESULTS") {
+                toast.warning(
+                  "Address not found - weather data will not be available"
+                );
+              }
+            }
+          } else {
+            // Fallback to free OpenStreetMap Nominatim service
+            const geocodeResponse = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+                editSite.address
+              )}&limit=1`
+            );
+
+            if (geocodeResponse.ok) {
+              const geocodeData = await geocodeResponse.json();
+              if (geocodeData && geocodeData.length > 0) {
+                coordinates = {
+                  latitude: parseFloat(geocodeData[0].lat),
+                  longitude: parseFloat(geocodeData[0].lon),
+                };
+                toast.success(
+                  "Address geocoded successfully for weather data (using free service)"
+                );
+              } else {
+                toast.warning(
+                  "Address not found - weather data will not be available"
+                );
+              }
+            }
+          }
+        } catch (geocodeError) {
+          console.warn(
+            "Geocoding failed, proceeding without coordinate update:",
+            geocodeError
+          );
+          toast.warning(
+            "Could not geocode new address - weather data may not be available"
+          );
+        }
+      }
+
       const siteData = {
         ...editSite,
         size_sqft: editSite.size_sqft
@@ -215,6 +346,7 @@ export default function SitesPage() {
         typical_salt_usage_kg: editSite.typical_salt_usage_kg
           ? parseFloat(editSite.typical_salt_usage_kg)
           : undefined,
+        ...(coordinates || {}), // Add latitude and longitude if address changed and geocoding successful
       };
 
       const response = await fetch(
@@ -238,7 +370,9 @@ export default function SitesPage() {
         setIsMobileActionsOpen(false);
         setEditingSite(null);
         setSelectedMobileSite(null);
-        toast.success("Site updated successfully!");
+        toast.success(
+          `Site updated successfully${coordinates ? " with updated weather data" : ""}`
+        );
       } else {
         const error = await response.json();
         toast.error(error.message || "Failed to update site");

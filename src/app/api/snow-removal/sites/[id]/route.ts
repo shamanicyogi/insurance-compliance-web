@@ -55,6 +55,8 @@ async function PUT(
       priority = "medium",
       size_sqft,
       typical_salt_usage_kg,
+      latitude,
+      longitude,
       contact_phone,
       special_instructions,
     } = body;
@@ -71,6 +73,27 @@ async function PUT(
     if (!["high", "medium", "low"].includes(priority)) {
       return NextResponse.json(
         { error: "Priority must be high, medium, or low" },
+        { status: 400 }
+      );
+    }
+
+    // Validate coordinates if provided
+    if (
+      latitude !== undefined &&
+      (typeof latitude !== "number" || latitude < -90 || latitude > 90)
+    ) {
+      return NextResponse.json(
+        { error: "Latitude must be a number between -90 and 90" },
+        { status: 400 }
+      );
+    }
+
+    if (
+      longitude !== undefined &&
+      (typeof longitude !== "number" || longitude < -180 || longitude > 180)
+    ) {
+      return NextResponse.json(
+        { error: "Longitude must be a number between -180 and 180" },
         { status: 400 }
       );
     }
@@ -104,6 +127,8 @@ async function PUT(
         typical_salt_usage_kg: typical_salt_usage_kg
           ? parseFloat(typical_salt_usage_kg)
           : null,
+        latitude: latitude !== undefined ? latitude : null,
+        longitude: longitude !== undefined ? longitude : null,
         contact_phone: contact_phone ? contact_phone.trim() : null,
         special_instructions: special_instructions
           ? special_instructions.trim()
