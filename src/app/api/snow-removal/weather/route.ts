@@ -15,6 +15,10 @@ interface WeatherApiResponse {
   wind_speed: number;
   trend: string;
   forecast_confidence: number;
+  // Enhanced forecast data
+  daytime_high: number;
+  daytime_low: number;
+  forecast_id?: string;
 }
 
 function mapOpenWeatherCondition(
@@ -117,6 +121,9 @@ async function GET(req: NextRequest) {
         wind_speed: 5 + Math.sin((hour / 24) * Math.PI) * 10,
         trend: hour < 12 ? "up" : "down",
         forecast_confidence: 0.3,
+        daytime_high: Math.round((tempBase + 3) * 10) / 10,
+        daytime_low: Math.round((tempBase - 5) * 10) / 10,
+        forecast_id: `fallback_${now.toISOString().split("T")[0]}`,
       };
 
       return NextResponse.json(fallbackData);
@@ -142,7 +149,7 @@ async function GET(req: NextRequest) {
       // Fetch forecast for trend analysis (with timeout)
       const forecastUrl = `${OPENWEATHER_BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
       const forecastResponse = await fetch(forecastUrl, {
-        signal: AbortSignal.timeout(30000), // 5 second timeout
+        signal: AbortSignal.timeout(8000), // 8 second timeout
         headers: {
           "User-Agent": "SnowRemovalApp/1.0",
         },
@@ -170,6 +177,53 @@ async function GET(req: NextRequest) {
       if (!currentData.main) confidence -= 0.3;
       if (forecastData.list?.length === 0) confidence -= 0.1;
 
+      // Extract high/low from forecast data (next 24 hours)
+      const now = new Date();
+      const today = now.toISOString().split("T")[0];
+      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0];
+
+      console.log("Date filtering:", { today, tomorrow });
+
+      const next24hForecasts =
+        forecastData.list?.filter((item: { dt_txt: string }) => {
+          const itemDate = item.dt_txt.split(" ")[0]; // Get YYYY-MM-DD part
+          return itemDate === today || itemDate === tomorrow;
+        }) || [];
+
+      console.log("Filtered forecasts:", {
+        total_forecasts: forecastData.list?.length || 0,
+        next_24h_count: next24hForecasts.length,
+        sample_dates: next24hForecasts
+          .slice(0, 3)
+          .map((item: { dt_txt: string }) => item.dt_txt),
+      });
+
+      let dayHigh = temperature;
+      let dayLow = temperature;
+
+      if (next24hForecasts.length > 0) {
+        const temps = next24hForecasts.map(
+          (item: { main: { temp: number } }) => item.main.temp
+        );
+        console.log("Extracted temperatures:", temps);
+        dayHigh = Math.max(...temps, temperature); // Include current temp
+        dayLow = Math.min(...temps, temperature); // Include current temp
+        console.log("Calculated high/low:", { dayHigh, dayLow });
+      } else {
+        console.log("No forecast data found, using estimation");
+        // Fallback: simple estimation based on time of day and seasonal patterns
+        const hour = now.getHours();
+        const dailyRange = 8; // Typical daily temperature range
+
+        // Peak temperature usually around 2-4 PM, lowest around 6-8 AM
+        const timeBasedOffset =
+          Math.sin(((hour - 6) / 24) * 2 * Math.PI) * (dailyRange / 2);
+        dayHigh = temperature + dailyRange / 2 - timeBasedOffset;
+        dayLow = temperature - dailyRange / 2 - timeBasedOffset;
+      }
+
       const weatherData: WeatherApiResponse = {
         temperature,
         conditions,
@@ -178,6 +232,9 @@ async function GET(req: NextRequest) {
         wind_speed: windSpeed,
         trend,
         forecast_confidence: Math.max(0.1, confidence),
+        daytime_high: Math.round(dayHigh * 10) / 10,
+        daytime_low: Math.round(dayLow * 10) / 10,
+        forecast_id: `owm_${currentData.dt}_${Date.now()}`,
       };
 
       return NextResponse.json(weatherData);
@@ -196,6 +253,9 @@ async function GET(req: NextRequest) {
         wind_speed: 8,
         trend: "steady",
         forecast_confidence: 0.1,
+        daytime_high: Math.round((tempBase + 2) * 10) / 10,
+        daytime_low: Math.round((tempBase - 4) * 10) / 10,
+        forecast_id: `fallback_error_${now.toISOString().split("T")[0]}`,
       };
 
       return NextResponse.json(fallbackData);
