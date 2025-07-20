@@ -18,48 +18,42 @@ const supabaseAdmin = createClient(
 
 export const authOptions: NextAuthOptions = {
   adapter: SupabaseAdapter({
-    url: process.env.SUPABASE_URL!,
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   }),
   session: {
     strategy: "jwt",
   },
   providers: [
+    // 🔑 Google OAuth Provider
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    EmailProvider({
-      server: {
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT),
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASSWORD,
+      authorization: {
+        params: {
+          prompt: "select_account",
         },
       },
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
     }),
-    // Keep Google OAuth as backup option
-    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-      ? [
-          GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-            authorization: {
-              params: {
-                prompt: "select_account",
-              },
-            },
-          }),
-        ]
-      : []),
+    // ✉️ Email Provider using Resend
+    EmailProvider({
+      server: {
+        host: "smtp.resend.com",
+        port: 587,
+        auth: {
+          user: "resend",
+          pass: process.env.RESEND_API_KEY,
+        },
+      },
+      from: process.env.EMAIL_FROM || "onboarding@slipcheck.pro",
+    }),
   ],
   pages: {
     signIn: "/login",
   },
   callbacks: {
     async signIn({ user }) {
+      // Block suspicious domains
       const suspiciousDomains = [
         "goodpostman.com",
         "10minutemail.com",
@@ -79,18 +73,14 @@ export const authOptions: NextAuthOptions = {
           return false;
         }
 
-        // NextAuth + SupabaseAdapter creates user in auth.users automatically
-        // We also need to create corresponding record in public.users for our app profiles
-
         // Check if user already exists in our custom public.users table BY EMAIL
-        // (to avoid UUID format issues with different OAuth providers)
         const { data: existingUser, error: checkError } = await supabaseAdmin
           .from("users")
           .select("id, auth_user_id")
           .eq("email", user.email)
           .single();
 
-        console.log(existingUser, "existingUser");
+        console.log("Existing user check:", existingUser);
 
         if (checkError && checkError.code !== "PGRST116") {
           // PGRST116 is "not found" error, which is expected for new users
@@ -98,34 +88,9 @@ export const authOptions: NextAuthOptions = {
           return false;
         }
 
-        // If user doesn't exist in our custom table, we need to get their actual Supabase UUID
+        // If user doesn't exist in our custom table, create them
         if (!existingUser) {
-          console.log(
-            "Creating new user profile in public.users for:",
-            user.email
-          );
-
-          // Get the actual Supabase auth user UUID by email
-          const { data: authUser, error: authError } =
-            await supabaseAdmin.auth.admin.listUsers();
-
-          if (authError) {
-            console.error("Error fetching auth users:", authError);
-            return false;
-          }
-
-          console.log(authUser, "authUser 😱");
-          console.log(authUser.users, "authUser.users 😱");
-
-          // // Find the user in auth.users by email
-          // const supabaseUser = authUser.users.find(
-          //   (u) => u.email === user.email
-          // );
-
-          // if (!supabaseUser) {
-          //   console.error("Could not find Supabase auth user for:", user.email);
-          //   return false;
-          // }
+          console.log("Creating new user profile for:", user.email);
 
           const { error: insertError } = await supabaseAdmin
             .from("users")
@@ -140,9 +105,9 @@ export const authOptions: NextAuthOptions = {
             return false;
           }
 
-          console.log("✅ User profile created successfully in public.users");
+          console.log("✅ User profile created successfully");
         } else {
-          console.log("✅ User profile already exists in public.users");
+          console.log("✅ User profile already exists");
         }
 
         return true;
@@ -153,7 +118,6 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, user }) {
-      // Include user ID in JWT token
       if (user) {
         token.id = user.id;
       }
@@ -161,7 +125,6 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
-      // Include user ID in session from token
       if (token.id) {
         session.user.id = token.id as string;
       }
@@ -171,5 +134,4 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET!,
 };
 
-// Export the admin client for use in API routes
 export { supabaseAdmin };
