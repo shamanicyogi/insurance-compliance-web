@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useCompany } from "@/lib/contexts/company-context";
 import Spinner from "@/components/spinner";
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
   TrendingUp,
@@ -38,6 +40,28 @@ import {
   Cell,
 } from "recharts";
 
+interface DashboardStats {
+  todayReports: number;
+  assignedSites: number;
+  activeJobs: number;
+  totalEmployees?: number;
+  activeSites?: number;
+  completionRate?: number;
+}
+
+interface Site {
+  id: string;
+  name: string;
+  priority: "high" | "medium" | "low";
+}
+
+interface Report {
+  id: string;
+  date: string;
+  is_draft: boolean;
+  finish_time?: string;
+}
+
 // Sample data for analytics (for owners/managers)
 const analyticsData = [
   { name: "Jan", reports: 45, sites: 12 },
@@ -48,44 +72,67 @@ const analyticsData = [
   { name: "Jun", reports: 15, sites: 28 },
 ];
 
-const siteData = [
-  { name: "High Priority", value: 35, color: "#ef4444" },
-  { name: "Medium Priority", value: 45, color: "#f59e0b" },
-  { name: "Low Priority", value: 20, color: "#10b981" },
-];
-
 const recentActivity = [
   {
     id: 1,
-    employee: "John Doe",
-    action: "Completed snow removal at Main Office",
-    time: "2 hours ago",
-    status: "success",
-  },
-  {
-    id: 2,
-    employee: "Sarah Wilson",
-    action: "Started job at Warehouse District",
-    time: "4 hours ago",
+    employee: "Recent Activity",
+    action: "Check the Snow Reports page for latest activity",
+    time: "Live updates",
     status: "info",
-  },
-  {
-    id: 3,
-    employee: "Mike Johnson",
-    action: "Submitted report for Parking Lot A",
-    time: "6 hours ago",
-    status: "success",
-  },
-  {
-    id: 4,
-    employee: "Emma Davis",
-    action: "Updated material usage calculations",
-    time: "8 hours ago",
-    status: "warning",
   },
 ];
 
 function EmployeeDashboard() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadEmployeeStats = async () => {
+      try {
+        const [reportsResponse, sitesResponse] = await Promise.all([
+          fetch("/api/snow-removal/reports", { credentials: "include" }),
+          fetch("/api/snow-removal/sites", { credentials: "include" }),
+        ]);
+
+        const [reportsData, sitesData] = await Promise.all([
+          reportsResponse.ok ? reportsResponse.json() : { reports: [] },
+          sitesResponse.ok ? sitesResponse.json() : { sites: [] },
+        ]);
+
+        const reports: Report[] = reportsData.reports || [];
+        const sites: Site[] = sitesData.sites || [];
+
+        // Calculate today's reports
+        const today = new Date().toISOString().split("T")[0];
+        const todayReports = reports.filter((r) =>
+          r.date.startsWith(today)
+        ).length;
+
+        // Calculate active jobs (draft reports or reports without finish time)
+        const activeJobs = reports.filter(
+          (r) => r.is_draft || !r.finish_time
+        ).length;
+
+        setStats({
+          todayReports,
+          assignedSites: sites.length,
+          activeJobs,
+        });
+      } catch (error) {
+        console.error("Error loading employee stats:", error);
+        setStats({
+          todayReports: 0,
+          assignedSites: 0,
+          activeJobs: 0,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEmployeeStats();
+  }, []);
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -109,7 +156,13 @@ function EmployeeDashboard() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
+            {loading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {stats?.todayReports || 0}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
               Reports completed today
             </p>
@@ -124,7 +177,13 @@ function EmployeeDashboard() {
             <CloudSnow className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            {loading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {stats?.assignedSites || 0}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
               Sites under your responsibility
             </p>
@@ -137,7 +196,11 @@ function EmployeeDashboard() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2</div>
+            {loading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <div className="text-2xl font-bold">{stats?.activeJobs || 0}</div>
+            )}
             <p className="text-xs text-muted-foreground">
               Jobs currently in progress
             </p>
@@ -166,6 +229,115 @@ function EmployeeDashboard() {
 }
 
 function ManagerDashboard({ userRole }: { userRole: string }) {
+  const { employee } = useCompany();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [siteData, setSiteData] = useState<
+    { name: string; value: number; color: string }[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadManagerStats = async () => {
+      try {
+        const [reportsResponse, sitesResponse, employeesResponse] =
+          await Promise.all([
+            fetch("/api/snow-removal/reports", { credentials: "include" }),
+            fetch("/api/snow-removal/sites", { credentials: "include" }),
+            employee?.company_id
+              ? fetch(
+                  `/api/snow-removal/companies/${employee.company_id}/employees`,
+                  { credentials: "include" }
+                )
+              : Promise.resolve({ ok: false }),
+          ]);
+
+        const [reportsData, sitesData, employeesData] = await Promise.all([
+          reportsResponse.ok ? reportsResponse.json() : { reports: [] },
+          sitesResponse.ok ? sitesResponse.json() : { sites: [] },
+          employeesResponse.ok ? employeesResponse.json() : { employees: [] },
+        ]);
+
+        const reports: Report[] = reportsData.reports || [];
+        const sites: Site[] = sitesData.sites || [];
+        const employees = employeesData.employees || [];
+
+        // Calculate today's reports
+        const today = new Date().toISOString().split("T")[0];
+        const todayReports = reports.filter((r) =>
+          r.date.startsWith(today)
+        ).length;
+
+        // Calculate completion rate (submitted vs total reports)
+        const submittedReports = reports.filter((r) => !r.is_draft).length;
+        const completionRate =
+          reports.length > 0 ? (submittedReports / reports.length) * 100 : 0;
+
+        // Calculate site priority distribution
+        const priorityCounts = sites.reduce(
+          (acc, site) => {
+            acc[site.priority] = (acc[site.priority] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        );
+
+        const totalSites = sites.length;
+        const newSiteData = [
+          {
+            name: "High Priority",
+            value:
+              totalSites > 0
+                ? Math.round(((priorityCounts.high || 0) / totalSites) * 100)
+                : 0,
+            color: "#ef4444",
+          },
+          {
+            name: "Medium Priority",
+            value:
+              totalSites > 0
+                ? Math.round(((priorityCounts.medium || 0) / totalSites) * 100)
+                : 0,
+            color: "#f59e0b",
+          },
+          {
+            name: "Low Priority",
+            value:
+              totalSites > 0
+                ? Math.round(((priorityCounts.low || 0) / totalSites) * 100)
+                : 0,
+            color: "#10b981",
+          },
+        ].filter((item) => item.value > 0);
+
+        setStats({
+          todayReports,
+          assignedSites: 0, // Not relevant for managers
+          activeJobs: 0, // Not relevant for managers
+          totalEmployees: employees.length,
+          activeSites: sites.length,
+          completionRate: Math.round(completionRate * 10) / 10, // Round to 1 decimal
+        });
+
+        setSiteData(newSiteData);
+      } catch (error) {
+        console.error("Error loading manager stats:", error);
+        setStats({
+          todayReports: 0,
+          assignedSites: 0,
+          activeJobs: 0,
+          totalEmployees: 0,
+          activeSites: 0,
+          completionRate: 0,
+        });
+        setSiteData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadManagerStats();
+  }, [employee?.company_id]);
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -190,14 +362,14 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600 flex items-center">
-                <ArrowUpRight className="h-3 w-3 mr-1" />
-                +2 new
-              </span>
-              this month
-            </p>
+            {loading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {stats?.totalEmployees || 0}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Active team members</p>
           </CardContent>
         </Card>
 
@@ -207,14 +379,14 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
             <CloudSnow className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">28</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600 flex items-center">
-                <ArrowUpRight className="h-3 w-3 mr-1" />
-                +5 new
-              </span>
-              sites added
-            </p>
+            {loading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {stats?.activeSites || 0}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Sites being managed</p>
           </CardContent>
         </Card>
 
@@ -226,13 +398,15 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">47</div>
+            {loading ? (
+              <Skeleton className="h-8 w-12" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {stats?.todayReports || 0}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
-              <span className="text-red-600 flex items-center">
-                <ArrowDownRight className="h-3 w-3 mr-1" />
-                -3 from
-              </span>
-              yesterday
+              Reports submitted today
             </p>
           </CardContent>
         </Card>
@@ -245,13 +419,15 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">94.5%</div>
+            {loading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {stats?.completionRate || 0}%
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600 flex items-center">
-                <ArrowUpRight className="h-3 w-3 mr-1" />
-                +2.1%
-              </span>
-              from last week
+              Reports completion rate
             </p>
           </CardContent>
         </Card>
@@ -302,27 +478,35 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <PieChart>
-                <Pie
-                  data={siteData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {siteData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {loading ? (
+              <div className="flex justify-center items-center h-[350px]">
+                <Spinner />
+              </div>
+            ) : siteData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={350}>
+                <PieChart>
+                  <Pie
+                    data={siteData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name} ${value}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {siteData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex justify-center items-center h-[350px] text-muted-foreground">
+                No sites data available
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
