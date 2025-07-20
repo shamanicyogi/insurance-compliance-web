@@ -28,6 +28,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppLayout } from "@/components/app-layout";
 
@@ -46,10 +63,31 @@ interface Site {
   created_at: string;
 }
 
+interface NewSiteForm {
+  name: string;
+  address: string;
+  priority: "high" | "medium" | "low";
+  size_sqft: string;
+  typical_salt_usage_kg: string;
+  contact_phone: string;
+  special_instructions: string;
+}
+
 export default function SitesPage() {
   const { status } = useSession();
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newSite, setNewSite] = useState<NewSiteForm>({
+    name: "",
+    address: "",
+    priority: "medium",
+    size_sqft: "",
+    typical_salt_usage_kg: "",
+    contact_phone: "",
+    special_instructions: "",
+  });
 
   useEffect(() => {
     const loadSites = async () => {
@@ -79,6 +117,60 @@ export default function SitesPage() {
 
     loadSites();
   }, [status]);
+
+  const handleCreateSite = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!newSite.name || !newSite.address) {
+      toast.error("Please fill in required fields (Name and Address)");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const siteData = {
+        ...newSite,
+        size_sqft: newSite.size_sqft ? parseInt(newSite.size_sqft) : undefined,
+        typical_salt_usage_kg: newSite.typical_salt_usage_kg
+          ? parseFloat(newSite.typical_salt_usage_kg)
+          : undefined,
+      };
+
+      const response = await fetch("/api/snow-removal/sites", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(siteData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setSites((prev) => [result.site, ...prev]);
+        setIsCreateModalOpen(false);
+        setNewSite({
+          name: "",
+          address: "",
+          priority: "medium",
+          size_sqft: "",
+          typical_salt_usage_kg: "",
+          contact_phone: "",
+          special_instructions: "",
+        });
+        toast.success("Site created successfully!");
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Failed to create site");
+      }
+    } catch (error) {
+      console.error("Error creating site:", error);
+      toast.error("Failed to create site");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -117,7 +209,10 @@ export default function SitesPage() {
               Manage your snow removal sites and locations.
             </p>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button
+            className="flex items-center gap-2"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
             <Plus className="h-4 w-4" />
             Add Site
           </Button>
@@ -187,7 +282,7 @@ export default function SitesPage() {
                 <p className="text-muted-foreground mb-4">
                   Add your first site to start managing snow removal locations.
                 </p>
-                <Button>
+                <Button onClick={() => setIsCreateModalOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Your First Site
                 </Button>
@@ -252,6 +347,149 @@ export default function SitesPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Create Site Modal */}
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Site</DialogTitle>
+              <DialogDescription>
+                Create a new snow removal site location.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateSite} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Site Name *</Label>
+                <Input
+                  id="name"
+                  value={newSite.name}
+                  onChange={(e) =>
+                    setNewSite((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  placeholder="e.g., Main Office Complex"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Address *</Label>
+                <Input
+                  id="address"
+                  value={newSite.address}
+                  onChange={(e) =>
+                    setNewSite((prev) => ({ ...prev, address: e.target.value }))
+                  }
+                  placeholder="e.g., 123 Business Ave, City, ST 12345"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select
+                    value={newSite.priority}
+                    onValueChange={(value: "high" | "medium" | "low") =>
+                      setNewSite((prev) => ({ ...prev, priority: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="size_sqft">Size (sq ft)</Label>
+                  <Input
+                    id="size_sqft"
+                    type="number"
+                    value={newSite.size_sqft}
+                    onChange={(e) =>
+                      setNewSite((prev) => ({
+                        ...prev,
+                        size_sqft: e.target.value,
+                      }))
+                    }
+                    placeholder="50000"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="typical_salt_usage_kg">Salt Usage (kg)</Label>
+                  <Input
+                    id="typical_salt_usage_kg"
+                    type="number"
+                    step="0.1"
+                    value={newSite.typical_salt_usage_kg}
+                    onChange={(e) =>
+                      setNewSite((prev) => ({
+                        ...prev,
+                        typical_salt_usage_kg: e.target.value,
+                      }))
+                    }
+                    placeholder="100.0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="contact_phone">Contact Phone</Label>
+                  <Input
+                    id="contact_phone"
+                    type="tel"
+                    value={newSite.contact_phone}
+                    onChange={(e) =>
+                      setNewSite((prev) => ({
+                        ...prev,
+                        contact_phone: e.target.value,
+                      }))
+                    }
+                    placeholder="555-1234"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="special_instructions">
+                  Special Instructions
+                </Label>
+                <Textarea
+                  id="special_instructions"
+                  value={newSite.special_instructions}
+                  onChange={(e) =>
+                    setNewSite((prev) => ({
+                      ...prev,
+                      special_instructions: e.target.value,
+                    }))
+                  }
+                  placeholder="Any special notes or instructions for this site..."
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Creating..." : "Create Site"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
