@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { WeatherService } from "@/lib/services/weather-service";
 import { withErrorHandling } from "@/lib/api-error-handler";
 import { secureError } from "@/lib/utils/secure-logger";
 import type { CreateReportRequest } from "@/types/snow-removal";
@@ -140,40 +139,48 @@ async function POST(req: NextRequest) {
       );
     }
 
-    // Auto-fill weather data if we have coordinates
+    // Auto-fill weather data if we have coordinates and no weather data was provided
     let weatherData = null;
-    let forecastData = null;
     let autoFilledData: Partial<CreateReportRequest> = {};
 
-    if (site.latitude && site.longitude) {
+    // Only fetch weather if form didn't already provide it
+    const hasFormWeatherData =
+      reportData.air_temperature !== 0 || reportData.weather_data;
+
+    if (site.latitude && site.longitude && !hasFormWeatherData) {
       try {
-        weatherData = await WeatherService.getCurrentWeather(
-          site.latitude,
-          site.longitude
-        );
-        forecastData = await WeatherService.getForecast(
-          site.latitude,
-          site.longitude
+        // Use our secure weather API endpoint for consistency
+        const weatherResponse = await fetch(
+          `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/snow-removal/weather?lat=${site.latitude}&lon=${site.longitude}`,
+          {
+            headers: {
+              Cookie: req.headers.get("cookie") || "",
+            },
+          }
         );
 
-        // Auto-fill weather-related fields
-        autoFilledData = {
-          air_temperature: weatherData.temperature,
-          daytime_high: forecastData.high,
-          daytime_low: forecastData.low,
-          snowfall_accumulation_cm: weatherData.snowfall * 10, // Convert mm to cm
-          precipitation_type: weatherData.conditions,
-          temperature_trend: weatherData.trend,
-          conditions_upon_arrival: weatherData.conditions,
-          weather_data: {
-            api_source: "openweathermap",
-            temperature: weatherData.temperature,
-            precipitation: weatherData.precipitation,
-            wind_speed: weatherData.wind_speed,
-            conditions: weatherData.conditions,
-            forecast_confidence: weatherData.forecast_confidence,
-          },
-        };
+        if (weatherResponse.ok) {
+          weatherData = await weatherResponse.json();
+
+          // Auto-fill weather-related fields
+          autoFilledData = {
+            air_temperature: weatherData.temperature,
+            daytime_high: weatherData.temperature + 2, // Simple forecast approximation
+            daytime_low: weatherData.temperature - 3,
+            snowfall_accumulation_cm: weatherData.snowfall, // Already in cm from our API
+            precipitation_type: weatherData.conditions,
+            temperature_trend: weatherData.trend,
+            conditions_upon_arrival: weatherData.conditions,
+            weather_data: {
+              api_source: "openweathermap",
+              temperature: weatherData.temperature,
+              precipitation: weatherData.precipitation || 0,
+              wind_speed: weatherData.wind_speed,
+              conditions: weatherData.conditions,
+              forecast_confidence: weatherData.forecast_confidence,
+            },
+          };
+        }
       } catch (error) {
         secureError("Weather API error:", error);
         // Continue without weather data

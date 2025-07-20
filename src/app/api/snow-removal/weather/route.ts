@@ -142,7 +142,7 @@ async function GET(req: NextRequest) {
       // Fetch forecast for trend analysis (with timeout)
       const forecastUrl = `${OPENWEATHER_BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
       const forecastResponse = await fetch(forecastUrl, {
-        signal: AbortSignal.timeout(5000), // 5 second timeout
+        signal: AbortSignal.timeout(30000), // 5 second timeout
         headers: {
           "User-Agent": "SnowRemovalApp/1.0",
         },

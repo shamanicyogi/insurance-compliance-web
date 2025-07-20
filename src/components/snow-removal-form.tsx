@@ -362,19 +362,40 @@ export function SnowRemovalForm({
         gps_latitude: gpsLocation?.latitude,
         gps_longitude: gpsLocation?.longitude,
         gps_accuracy: gpsLocation ? 10 : undefined, // 10 meters accuracy
-        // These will be auto-filled by the API
-        conditions_upon_arrival: "clear" as WeatherCondition,
-        precipitation_type: "clear" as WeatherCondition,
-        air_temperature: 0,
+        // Include current weather data from form to ensure consistency
+        air_temperature: weatherData?.temperature || 0,
+        snowfall_accumulation_cm: weatherData?.snowfall || 0,
+        precipitation_type:
+          weatherData?.conditions || ("clear" as WeatherCondition),
+        temperature_trend: weatherData?.trend || ("steady" as WeatherTrend),
+        conditions_upon_arrival:
+          weatherData?.conditions || ("clear" as WeatherCondition),
+        // Auto-filled fields (will be overridden by API if not provided)
         daytime_high: 0,
         daytime_low: 0,
-        snowfall_accumulation_cm: 0,
-        temperature_trend: "steady" as WeatherTrend,
         operator: "",
         site_name: "",
         salt_used_kg: data.salt_used_kg || 0,
         deicing_material_kg: data.deicing_material_kg || 0,
         salt_alternative_kg: data.salt_alternative_kg || 0,
+        // Include weather data for storage
+        weather_data: weatherData
+          ? {
+              api_source: "secure_endpoint",
+              temperature: weatherData.temperature,
+              precipitation: 0,
+              wind_speed: 0,
+              conditions: weatherData.conditions,
+              forecast_confidence: weatherData.forecast_confidence,
+            }
+          : undefined,
+        // Include calculations
+        calculations: calculations
+          ? {
+              ...calculations,
+              cost_per_kg: 0.5, // Default cost per kg
+            }
+          : undefined,
       };
 
       if (onSubmit) {
