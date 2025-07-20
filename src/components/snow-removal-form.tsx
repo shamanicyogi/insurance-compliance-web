@@ -53,6 +53,10 @@ interface WeatherData {
   snowfall: number;
   trend: WeatherTrend;
   forecast_confidence: number;
+  // Enhanced forecast data from API
+  daytime_high: number;
+  daytime_low: number;
+  forecast_id?: string;
 }
 
 interface Calculations {
@@ -259,6 +263,12 @@ export function SnowRemovalForm({
 
         const weatherData = await weatherResponse.json();
         console.log("Weather data received:", weatherData);
+        console.log("Enhanced forecast data:", {
+          temperature: weatherData.temperature,
+          high: weatherData.daytime_high,
+          low: weatherData.daytime_low,
+          forecast_id: weatherData.forecast_id,
+        });
 
         // Transform API response to our expected format
         const transformedWeatherData = {
@@ -267,6 +277,10 @@ export function SnowRemovalForm({
           snowfall: weatherData.snowfall, // API already returns cm, no conversion needed
           trend: weatherData.trend,
           forecast_confidence: weatherData.forecast_confidence,
+          // Enhanced forecast data from API
+          daytime_high: weatherData.daytime_high,
+          daytime_low: weatherData.daytime_low,
+          forecast_id: weatherData.forecast_id,
         };
 
         // Calculate material usage (this could be moved to an API endpoint later)
@@ -331,6 +345,10 @@ export function SnowRemovalForm({
           snowfall: 0,
           trend: "steady" as WeatherTrend,
           forecast_confidence: 0.1,
+          // Enhanced forecast data from API
+          daytime_high: 0,
+          daytime_low: 0,
+          forecast_id: undefined,
         };
 
         const fallbackCalculations = {
@@ -370,9 +388,11 @@ export function SnowRemovalForm({
         temperature_trend: weatherData?.trend || ("steady" as WeatherTrend),
         conditions_upon_arrival:
           weatherData?.conditions || ("clear" as WeatherCondition),
-        // Auto-filled fields (will be overridden by API if not provided)
-        daytime_high: 0,
-        daytime_low: 0,
+        // Enhanced forecast data
+        daytime_high: weatherData?.daytime_high || 0,
+        daytime_low: weatherData?.daytime_low || 0,
+        weather_forecast_id: weatherData?.forecast_id || undefined,
+        // Auto-filled fields
         operator: "",
         site_name: "",
         salt_used_kg: data.salt_used_kg || 0,
@@ -652,9 +672,16 @@ export function SnowRemovalForm({
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Temperature</p>
+                <p className="text-sm text-muted-foreground">Current Temp</p>
                 <p className="text-2xl font-bold">
                   {weatherData.temperature}°C
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">High / Low</p>
+                <p className="text-lg font-semibold">
+                  {weatherData.daytime_high?.toFixed(1)}° /{" "}
+                  {weatherData.daytime_low?.toFixed(1)}°
                 </p>
               </div>
               <div className="text-center">
@@ -667,13 +694,23 @@ export function SnowRemovalForm({
                   {weatherData.snowfall} cm
                 </p>
               </div>
+            </div>
+            {/* <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Confidence</p>
+                <p className="text-sm text-muted-foreground">
+                  Forecast Confidence
+                </p>
                 <p className="text-lg font-semibold">
                   {Math.round(weatherData.forecast_confidence * 100)}%
                 </p>
               </div>
-            </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Data Source</p>
+                <Badge variant="outline" className="text-xs">
+                  Real-time API
+                </Badge>
+              </div>
+            </div> */}
           </CardContent>
         </Card>
       )}
