@@ -12,8 +12,7 @@ import { secureError } from "@/lib/utils/secure-logger";
 async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      // TODO - get id
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -40,7 +39,8 @@ async function GET() {
       .eq("is_active", true);
 
     // If not manager/admin, filter to assigned sites only
-    const canViewAllSites = ["owner", "admin", "manager"].includes(
+    const canViewAllSites = ["owner", "admin", "manager", "employee"].includes(
+      // TODO - Implement site assignment logic (i.e. remove "employee" from this list)
       employee.role
     );
     if (!canViewAllSites) {
