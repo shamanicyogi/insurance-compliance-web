@@ -22,11 +22,13 @@ import type { SnowRemovalReportWithRelations } from "@/types/snow-removal";
 interface DraftReportsListProps {
   onEditDraft: (report: SnowRemovalReportWithRelations) => void;
   refreshTrigger?: number; // To trigger refresh from parent
+  onReportsChange?: () => Promise<void>; // To notify parent of changes
 }
 
 export function DraftReportsList({
   onEditDraft,
   refreshTrigger = 0,
+  onReportsChange,
 }: DraftReportsListProps) {
   const [draftReports, setDraftReports] = useState<
     SnowRemovalReportWithRelations[]
@@ -87,6 +89,11 @@ export function DraftReportsList({
       setDraftReports((prev) =>
         prev.filter((report) => report.id !== reportId)
       );
+
+      // Notify parent to refresh main reports list
+      if (onReportsChange) {
+        await onReportsChange();
+      }
     } catch (error) {
       console.error("Error submitting draft:", error);
       toast.error(
@@ -124,6 +131,11 @@ export function DraftReportsList({
       setDraftReports((prev) =>
         prev.filter((report) => report.id !== reportId)
       );
+
+      // Notify parent to refresh main reports list
+      if (onReportsChange) {
+        await onReportsChange();
+      }
     } catch (error) {
       console.error("Error deleting draft:", error);
       toast.error(

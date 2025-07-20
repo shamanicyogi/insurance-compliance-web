@@ -91,6 +91,20 @@ export default function SnowRemovalPage() {
   >(null);
   const [refreshDrafts, setRefreshDrafts] = useState(0);
 
+  // Function to reload reports from API
+  const reloadReports = async () => {
+    try {
+      const response = await fetch("/api/snow-removal/reports");
+      if (response.ok) {
+        const data = await response.json();
+        setReports(data.reports);
+      }
+    } catch (error) {
+      console.error("Error reloading reports:", error);
+      toast.error("Failed to reload reports");
+    }
+  };
+
   // Redirect if not authenticated
   // useEffect(() => {
   //   if (status === "unauthenticated") {
@@ -184,21 +198,8 @@ export default function SnowRemovalPage() {
         }
         setEditingReport(null); // Clear editing state
 
-        // Reload reports
-        const loadReports = async () => {
-          try {
-            const reportsResponse = await fetch("/api/snow-removal/reports");
-            if (reportsResponse.ok) {
-              const data = await reportsResponse.json();
-              setReports(data.reports);
-            }
-          } catch (error) {
-            console.error("Error reloading reports:", error);
-            toast.error("Failed to reload reports");
-          }
-        };
-        loadReports();
-        // Trigger draft refresh
+        // Reload reports and trigger draft refresh
+        await reloadReports();
         setRefreshDrafts((prev) => prev + 1);
       } else {
         const error = await response.json();
@@ -517,6 +518,7 @@ export default function SnowRemovalPage() {
                 <DraftReportsList
                   onEditDraft={handleEditDraft}
                   refreshTrigger={refreshDrafts}
+                  onReportsChange={reloadReports}
                 />
               </CardContent>
             </Card>
