@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -10,7 +10,7 @@ export default function JoinPage() {
   const searchParams = useSearchParams();
   const invitationCode = searchParams.get("code");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState(null);
 
   const handleJoin = async () => {
     if (!invitationCode) {
