@@ -62,7 +62,7 @@ export function SignUpForm() {
   //     };
   // 
   //     handleInvitationJoin();
-  //   }, [session, invitationCode, router]);
+  //   //   }, [session, invitationCode, router]);
 
   const handleOAuthSignIn = async (provider: Provider) => {
     try {

@@ -1,9 +1,0 @@
-  // Remove auto-join logic - let onboarding page handle invitations
-  // React.useEffect(() => {
-  //   const handleInvitationJoin = async () => {
-  //     if (session?.user && invitationCode) {
-  //       // Auto-join logic removed - middleware will redirect to onboarding
-  //     }
-  //   };
-  //   handleInvitationJoin();
-  // }, [session, invitationCode, router]);

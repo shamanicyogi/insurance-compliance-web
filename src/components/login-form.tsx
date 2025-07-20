@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { signIn, useSession } from "next-auth/react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,8 +17,8 @@ export function LoginForm({}: // className,
 // ...props
 React.ComponentProps<"form">) {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const { data: session } = useSession();
+  // const router = useRouter();
+  // const { data: session } = useSession();
 
   const invitationCode =
     searchParams.get("invitation") || searchParams.get("invitationCode");
@@ -35,7 +35,7 @@ React.ComponentProps<"form">) {
     strava: false,
   });
   const [email, setEmail] = React.useState(prefilledEmail || "");
-  // 
+  //
   //   // Auto-join company after authentication if invitation code exists
   //   React.useEffect(() => {
   //     const handleInvitationJoin = async () => {
@@ -49,9 +49,9 @@ React.ComponentProps<"form">) {
   //             credentials: "include",
   //             body: JSON.stringify({ invitationCode }),
   //           });
-  // 
+  //
   //           const data = await response.json();
-  // 
+  //
   //           if (response.ok && data.success) {
   //             toast.success(`Welcome to ${data.companyName}!`);
   //             router.push("/dashboard");
@@ -64,9 +64,9 @@ React.ComponentProps<"form">) {
   //         }
   //       }
   //     };
-  // 
+  //
   //     handleInvitationJoin();
-  }, [session, invitationCode, router]);
+  //   }, [session, invitationCode, router]);
 
   const handleOAuthSignIn = async (provider: Provider) => {
     try {
