@@ -83,13 +83,7 @@ const snowRemovalSchema = z.object({
     "salt",
     "combination",
   ]),
-  follow_up_plans: z.enum([
-    "allClear",
-    "activeSnowfall",
-    "monitorConditions",
-    "returnInHour",
-    "callSupervisor",
-  ]),
+  follow_up_plans: z.enum(["allClear", "activeSnowfall"]),
   salt_used_kg: z.number().min(0).optional(),
   deicing_material_kg: z.number().min(0).optional(),
   salt_alternative_kg: z.number().min(0).optional(),
@@ -825,15 +819,6 @@ export function SnowRemovalForm({
                       <SelectItem value="activeSnowfall">
                         Active Snowfall, will return for additional clearance at
                         1cm of accumulation
-                      </SelectItem>
-                      <SelectItem value="monitorConditions">
-                        Monitor Conditions, will check back in 2 hours
-                      </SelectItem>
-                      <SelectItem value="returnInHour">
-                        Return in 1 Hour for follow-up treatment
-                      </SelectItem>
-                      <SelectItem value="callSupervisor">
-                        Call Supervisor for further instructions
                       </SelectItem>
                     </SelectContent>
                   </Select>
