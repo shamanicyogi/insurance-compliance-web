@@ -21,10 +21,12 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { LogOut, Settings, User } from "lucide-react";
 import { ThemeMenuItems } from "@/components/theme-toggle";
+import { useCompany } from "@/lib/contexts/company-context";
 
 export function NavUser() {
   const { data: session } = useSession();
   const { isMobile } = useSidebar();
+  const { userRole } = useCompany();
 
   // Fetch minimal user data (just display_name and avatar_url)
   const { data: userData } = useQuery({
@@ -48,6 +50,10 @@ export function NavUser() {
   const userInitials = userData?.display_name
     ? userData.display_name.substring(0, 2).toUpperCase()
     : session.user?.name?.substring(0, 2).toUpperCase() || "U";
+
+  // Check if user can see admin/manager features
+  const canAccessSettings = userRole && ["owner", "admin"].includes(userRole);
+  const canAccessBilling = userRole && ["owner", "admin"].includes(userRole);
 
   return (
     <SidebarMenu>
@@ -94,24 +100,28 @@ export function NavUser() {
                   <span>Profile</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/settings"
-                  className="cursor-pointer flex w-full items-center"
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/billing"
-                  className="cursor-pointer flex w-full items-center"
-                >
-                  <IconCreditCard className="mr-2 h-4 w-4" />
-                  <span>Billing</span>
-                </Link>
-              </DropdownMenuItem>
+              {canAccessSettings && (
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/settings"
+                    className="cursor-pointer flex w-full items-center"
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {canAccessBilling && (
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/billing"
+                    className="cursor-pointer flex w-full items-center"
+                  >
+                    <IconCreditCard className="mr-2 h-4 w-4" />
+                    <span>Billing</span>
+                  </Link>
+                </DropdownMenuItem>
+              )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>

@@ -610,18 +610,21 @@ export function SnowRemovalForm({
                       <SelectValue placeholder="Select follow-up plan" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="allClear">All Clear</SelectItem>
+                      <SelectItem value="allClear">
+                        All Clear, will monitor
+                      </SelectItem>
                       <SelectItem value="activeSnowfall">
-                        Active Snowfall
+                        Active Snowfall, will return for additional clearance at
+                        1cm of accumulation
                       </SelectItem>
                       <SelectItem value="monitorConditions">
-                        Monitor Conditions
+                        Monitor Conditions, will check back in 2 hours
                       </SelectItem>
                       <SelectItem value="returnInHour">
-                        Return in 1 Hour
+                        Return in 1 Hour for follow-up treatment
                       </SelectItem>
                       <SelectItem value="callSupervisor">
-                        Call Supervisor
+                        Call Supervisor for further instructions
                       </SelectItem>
                     </SelectContent>
                   </Select>

@@ -1,52 +1,36 @@
 "use client";
 
-import { ReactNode } from "react";
-import { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { ModalProvider } from "@/lib/contexts/modal-context";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { MobileNavBar } from "@/components/mobile-nav-bar";
-import { ModalProvider, useModal } from "@/lib/contexts/modal-context";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { MobileViewProvider } from "@/lib/contexts/mobile-view-context";
-import { DialogTitle } from "@radix-ui/react-dialog";
-import { VisuallyHidden } from "@/components/ui/visually-hidden";
-
-// A component to render the modals, keeping the main layout clean
-function GlobalModals() {
-  const { isModalOpen, closeModal } = useModal();
-
-  return (
-    <>
-      <Dialog
-        open={isModalOpen("meal")}
-        onOpenChange={() => closeModal("meal")}
-      >
-        <DialogContent
-          className="bg-transparent p-0 border-0"
-          style={{
-            maxWidth: "95vw",
-            maxHeight: "95vh",
-            width: "auto",
-            height: "auto",
-          }}
-        >
-          <VisuallyHidden>
-            <DialogTitle>Log Meal</DialogTitle>
-          </VisuallyHidden>
-          {/* Modal content will be set by the component that opens it */}
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
+import { cn } from "@/lib/utils";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 
 interface AppLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
+}
+
+// Mobile header component with hamburger menu
+function MobileHeader() {
+  return (
+    <header className="flex h-16 shrink-0 items-center gap-2 px-4 bg-background border-b">
+      <SidebarTrigger className="-ml-1" />
+      <Separator orientation="vertical" className="mr-2 h-4" />
+      <div className="flex items-center gap-2 font-bold text-lg">
+        <span>SlipCheck</span>
+      </div>
+    </header>
+  );
 }
 
 export function AppLayout({ children, className }: AppLayoutProps) {
@@ -77,34 +61,19 @@ export function AppLayout({ children, className }: AppLayoutProps) {
     return <div className="p-8">Redirecting to login...</div>;
   }
 
-  if (isMobile) {
-    return (
-      <MobileViewProvider>
-        <ModalProvider>
-          <div className="flex h-screen flex-col bg-sidebar">
-            <div className="flex-1 flex flex-col min-h-0">
-              <main className="flex-1 overflow-auto bg-background">
-                <div className={cn("p-4", className)}>{children}</div>
-              </main>
-              <MobileNavBar />
-              <GlobalModals />
-            </div>
-          </div>
-        </ModalProvider>
-      </MobileViewProvider>
-    );
-  }
-
+  // Use the same sidebar layout for both mobile and desktop
   return (
     <SidebarProvider>
       <ModalProvider>
         <AppSidebar />
         <SidebarInset>
+          {isMobile && <MobileHeader />}
           <main className="flex-1 overflow-auto">
-            <div className={cn("p-6", className)}>{children}</div>
+            <div className={cn(isMobile ? "p-4" : "p-6", className)}>
+              {children}
+            </div>
           </main>
         </SidebarInset>
-        <GlobalModals />
       </ModalProvider>
     </SidebarProvider>
   );
