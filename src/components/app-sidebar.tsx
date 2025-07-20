@@ -16,6 +16,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
@@ -74,26 +75,34 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              size="lg"
-              className="data-[slot=sidebar-menu-button]:!p-2"
-            >
-              <a href="/dashboard">
-                {state === "collapsed" && !isMobile ? (
-                  // ChatGPT style - only show shield when collapsed on desktop
-                  <div className="flex h-8 w-8 items-center justify-center">
-                    <Shield className="h-6 w-6 text-primary" />
-                  </div>
-                ) : (
-                  // Show full logo when expanded or on mobile
-                  <span className="flex items-center gap-2 font-bold text-lg">
-                    <Shield className="h-5 w-5 text-primary" />
-                    SlipCheck
-                  </span>
+            {state === "collapsed" && !isMobile ? (
+              // Collapsed state: Only show toggle button, hide logo
+              <div className="flex justify-center">
+                <SidebarTrigger className="h-8 w-8 hover:bg-accent/50" />
+              </div>
+            ) : (
+              // Expanded state: Logo and toggle side by side
+              <div className="flex items-center gap-2">
+                <SidebarMenuButton
+                  asChild
+                  size="lg"
+                  className={`data-[slot=sidebar-menu-button]:!p-2 ${!isMobile ? "flex-1" : ""}`}
+                >
+                  <a href="/dashboard">
+                    {/* Show full logo when expanded or on mobile */}
+                    <span className="flex items-center gap-2 font-bold text-lg">
+                      <Shield className="h-5 w-5 text-primary" />
+                      SlipCheck
+                    </span>
+                  </a>
+                </SidebarMenuButton>
+
+                {/* Toggle button on the right */}
+                {!isMobile && (
+                  <SidebarTrigger className="h-8 w-8 hover:bg-accent/50" />
                 )}
-              </a>
-            </SidebarMenuButton>
+              </div>
+            )}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

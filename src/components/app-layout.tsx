@@ -33,6 +33,15 @@ function MobileHeader() {
   );
 }
 
+// Desktop header component (minimal, no toggle)
+function DesktopHeader() {
+  return (
+    <header className="flex h-3 shrink-0 items-center bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Minimal header for desktop - toggle is now in sidebar */}
+    </header>
+  );
+}
+
 export function AppLayout({ children, className }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const { data: session, status } = useSession();
@@ -67,7 +76,7 @@ export function AppLayout({ children, className }: AppLayoutProps) {
       <ModalProvider>
         <AppSidebar />
         <SidebarInset>
-          {isMobile && <MobileHeader />}
+          {isMobile ? <MobileHeader /> : <DesktopHeader />}
           <main className="flex-1 overflow-auto">
             <div className={cn(isMobile ? "p-4" : "p-6", className)}>
               {children}
