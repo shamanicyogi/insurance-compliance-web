@@ -165,12 +165,13 @@ async function POST(req: NextRequest) {
           // Auto-fill weather-related fields
           autoFilledData = {
             air_temperature: weatherData.temperature,
-            daytime_high: weatherData.temperature + 2, // Simple forecast approximation
-            daytime_low: weatherData.temperature - 3,
+            daytime_high: weatherData.daytime_high,
+            daytime_low: weatherData.daytime_low,
             snowfall_accumulation_cm: weatherData.snowfall, // Already in cm from our API
             precipitation_type: weatherData.conditions,
             temperature_trend: weatherData.trend,
             conditions_upon_arrival: weatherData.conditions,
+            weather_forecast_id: weatherData.forecast_id, // Track which forecast was used
             weather_data: {
               api_source: "openweathermap",
               temperature: weatherData.temperature,
