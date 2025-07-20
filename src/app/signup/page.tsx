@@ -2,6 +2,7 @@ import { SignUpForm } from "@/components/signup-form";
 import Image from "next/image";
 import Link from "next/link";
 import { Shield } from "lucide-react";
+import { Suspense } from "react";
 
 export default function SignUpPage() {
   return (
@@ -26,7 +27,9 @@ export default function SignUpPage() {
 
         <div className="flex flex-1 pt-4 justify-center lg:flex-col lg:items-center lg:justify-center">
           <div className="w-full max-w-xs">
-            <SignUpForm />
+            <Suspense fallback={<div>Loading...</div>}>
+              <SignUpForm />
+            </Suspense>
             <div className="mt-6 text-center text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link
