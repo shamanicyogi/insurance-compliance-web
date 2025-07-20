@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions, supabaseAdmin } from "@/lib/auth";
+import { authOptions } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/supabase";
 import { secureError } from "@/lib/utils/secure-logger";
 
 interface CreateCompanyRequest {

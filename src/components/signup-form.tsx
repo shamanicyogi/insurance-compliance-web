@@ -6,6 +6,8 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { GoogleIcon } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { Building2, Shield } from "lucide-react";
@@ -29,6 +31,7 @@ export function SignUpForm() {
     apple: false,
     strava: false,
   });
+  const [email, setEmail] = useState(prefilledEmail || "");
 
   const handleOAuthSignIn = async (provider: Provider) => {
     try {
@@ -48,10 +51,43 @@ export function SignUpForm() {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : `Failed to sign in with ${provider}. Please try again.`;
+          : `Failed to sign up with ${provider}. Please try again.`;
       toast.error(errorMessage);
     } finally {
       setIsLoading((prev) => ({ ...prev, [provider]: false }));
+    }
+  };
+
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+
+    try {
+      setIsLoading((prev) => ({ ...prev, email: true }));
+      const result = await signIn("email", {
+        email,
+        callbackUrl: invitationCode
+          ? `/signup?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}`
+          : "/dashboard",
+        redirect: false,
+      });
+
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+
+      toast.success("Check your email for a sign-up link!");
+    } catch (error: Error | unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to send sign-up email. Please try again.";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading((prev) => ({ ...prev, email: false }));
     }
   };
 
@@ -81,69 +117,68 @@ export function SignUpForm() {
               </span>
             </div>
           </div>
-          {prefilledEmail && (
-            <p className="text-sm text-green-600 font-medium border-t border-green-200 pt-3">
-              Invited email: {prefilledEmail}
-            </p>
-          )}
         </div>
       )}
 
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-bold">
           {invitationCode ? "Join Your Team" : "Create an account"}
         </h1>
         <p className="text-sm text-muted-foreground">
           {invitationCode
             ? "Create your account to accept the company invitation"
-            : "Choose how you'd like to join SlipCheck"}
+            : "Choose how you'd like to sign up"}
         </p>
-        {prefilledEmail && !companyName && (
-          <p className="text-sm text-blue-600 font-medium">
-            Invited: {prefilledEmail}
-          </p>
-        )}
       </div>
 
       <div className="space-y-4">
-        {/* Google OAuth */}
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => handleOAuthSignIn("google")}
-          disabled={isLoading.google}
-        >
-          <GoogleIcon className="mr-2 h-4 w-4" />
-          {isLoading.google ? "Creating account..." : "Continue with Google"}
-        </Button>
+        {/* Email Form */}
+        <form onSubmit={handleEmailSignUp} className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading.email || !!prefilledEmail}
+              required
+            />
+            {prefilledEmail && (
+              <p className="text-xs text-muted-foreground">
+                This email was invited to join the company
+              </p>
+            )}
+          </div>
+          <Button type="submit" className="w-full" disabled={isLoading.email}>
+            {isLoading.email ? "Sending..." : "Send Magic Link"}
+          </Button>
+        </form>
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-muted-foreground/20" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">or</span>
+            <span className="bg-background px-2 text-muted-foreground">
+              or continue with
+            </span>
           </div>
         </div>
 
-        <div className="text-center">
-          <Link
-            href={`/login${invitationCode ? `?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}&email=${encodeURIComponent(prefilledEmail || "")}` : ""}`}
-            className="text-sm text-primary hover:underline"
+        {/* Google OAuth - only show if configured */}
+        {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => handleOAuthSignIn("google")}
+            disabled={isLoading.google}
           >
-            Use magic link instead →
-          </Link>
-        </div>
-      </div>
-
-      <div className="text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
-        <Link
-          href={`/login${invitationCode ? `?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}&email=${encodeURIComponent(prefilledEmail || "")}` : ""}`}
-          className="font-medium text-primary hover:underline"
-        >
-          Sign in
-        </Link>
+            <GoogleIcon className="mr-2 h-4 w-4" />
+            {isLoading.google ? "Creating account..." : "Continue with Google"}
+          </Button>
+        )}
       </div>
     </div>
   );
