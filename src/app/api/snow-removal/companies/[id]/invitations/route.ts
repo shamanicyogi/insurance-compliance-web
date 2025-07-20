@@ -132,7 +132,6 @@ async function POST(
       .single();
 
     console.log(existingInvitation, "existingInvitation 😱");
-    console.log(existingInvitationError, "existingInvitationError 😱");
 
     if (existingInvitation) {
       const isExpired = new Date(existingInvitation.expires_at) < new Date();
