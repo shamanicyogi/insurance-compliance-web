@@ -112,7 +112,7 @@ async function POST(req: NextRequest) {
     }
 
     // Create default company settings
-    const { data: settings, error: settingsError } = await supabaseAdmin
+    const { error: settingsError } = await supabaseAdmin
       .from("company_settings")
       .insert({
         company_id: company.id,

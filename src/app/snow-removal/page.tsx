@@ -29,7 +29,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { SnowRemovalForm } from "@/components/snow-removal-form";
 import { DraftReportsList } from "@/components/draft-reports-list";
+import { AdminReportsList } from "@/components/admin-reports-list";
 import { AppLayout } from "@/components/app-layout";
+import { useCompanyPermissions } from "@/lib/contexts/company-context";
 import type {
   SnowRemovalReport,
   Site,
@@ -73,6 +75,7 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
 
 export default function SnowRemovalPage() {
   const { status } = useSession();
+  const { canExportData } = useCompanyPermissions();
 
   // Navigation state
   const [activeTab, setActiveTab] = useState("reports");
@@ -334,6 +337,12 @@ export default function SnowRemovalPage() {
               <Plus className="h-4 w-4" />
               {editingReport ? "Edit Report" : "Create Report"}
             </TabsTrigger>
+            {canExportData && (
+              <TabsTrigger value="admin" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Admin Reports
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Reports Tab */}
@@ -557,6 +566,13 @@ export default function SnowRemovalPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Admin Reports Tab */}
+          {canExportData && (
+            <TabsContent value="admin" className="space-y-4">
+              <AdminReportsList refreshTrigger={refreshDrafts} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </AppLayout>

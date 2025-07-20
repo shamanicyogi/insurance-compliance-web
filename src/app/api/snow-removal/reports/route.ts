@@ -23,6 +23,7 @@ async function GET(req: NextRequest) {
     const endDate = searchParams.get("end_date");
     const siteId = searchParams.get("site_id");
     const isDraft = searchParams.get("is_draft");
+    const isAdminView = searchParams.get("admin") === "true";
 
     // Get employee record with company info
     const { data: employee, error: employeeError } = await supabase
@@ -52,9 +53,23 @@ async function GET(req: NextRequest) {
       .eq("sites.company_id", employee.company_id)
       .eq("employees.company_id", employee.company_id);
 
-    // Filter by employee if not manager/admin
-    if (!["owner", "admin", "manager"].includes(employee.role)) {
-      query = query.eq("employee_id", employee.id);
+    // Check permissions for admin view
+    if (isAdminView) {
+      const canViewAllReports = ["owner", "admin", "manager"].includes(
+        employee.role
+      );
+      if (!canViewAllReports) {
+        return NextResponse.json(
+          { error: "Insufficient permissions to view all reports" },
+          { status: 403 }
+        );
+      }
+      // Admin view: show all company reports (no employee filter)
+    } else {
+      // Regular view: filter by employee if not manager/admin
+      if (!["owner", "admin", "manager"].includes(employee.role)) {
+        query = query.eq("employee_id", employee.id);
+      }
     }
 
     query = query

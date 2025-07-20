@@ -21,8 +21,6 @@ import {
   TrendingUp,
   Activity,
   Plus,
-  ArrowUpRight,
-  ArrowDownRight,
   CloudSnow,
   Clock,
   FileText,
