@@ -1,10 +1,10 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { signIn, useSession } from "next-auth/react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { GoogleIcon } from "@/components/ui/icons";
 import { toast } from "sonner";
@@ -14,8 +14,6 @@ type Provider = "google" | "apple" | "strava";
 
 export function SignUpForm() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const { data: session } = useSession();
 
   const invitationCode =
     searchParams.get("invitation") || searchParams.get("invitationCode");
@@ -31,38 +29,6 @@ export function SignUpForm() {
     apple: false,
     strava: false,
   });
-  // 
-  //   // Auto-join company after authentication if invitation code exists
-  //   useEffect(() => {
-  //     const handleInvitationJoin = async () => {
-  //       if (session?.user && invitationCode) {
-  //         try {
-  //           const response = await fetch("/api/snow-removal/companies/join", {
-  //             method: "POST",
-  //             headers: {
-  //               "Content-Type": "application/json",
-  //             },
-  //             credentials: "include",
-  //             body: JSON.stringify({ invitationCode }),
-  //           });
-  // 
-  //           const data = await response.json();
-  // 
-  //           if (response.ok && data.success) {
-  //             toast.success(`Welcome to ${data.companyName}!`);
-  //             router.push("/dashboard");
-  //           } else {
-  //             toast.error(data.error || "Failed to join company");
-  //           }
-  //         } catch (error) {
-  //           console.error("Error joining company:", error);
-  //           toast.error("Failed to join company");
-  //         }
-  //       }
-  //     };
-  // 
-  //     handleInvitationJoin();
-  //   //   }, [session, invitationCode, router]);
 
   const handleOAuthSignIn = async (provider: Provider) => {
     try {
