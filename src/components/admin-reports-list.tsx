@@ -168,7 +168,7 @@ export function AdminReportsList({
     return employees;
   }, [reports]);
 
-  // Export all filtered reports to Excel
+  // Export all filtered reports to CSV
   const handleExportExcel = async () => {
     setExporting(true);
     try {
@@ -192,12 +192,12 @@ export function AdminReportsList({
         a.style.display = "none";
         a.href = url;
         const timestamp = format(new Date(), "yyyy-MM-dd-HHmm");
-        a.download = `snow-removal-reports-${timestamp}.xlsx`;
+        a.download = `snow-removal-reports-${timestamp}.csv`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast.success("Excel export completed");
+        toast.success("CSV export completed");
       } else {
         toast.error("Failed to export reports");
       }

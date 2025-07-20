@@ -127,14 +127,34 @@ async function GET(req: NextRequest) {
       });
     }
 
+    // Validate we have data to export
+    if (!filteredReports || filteredReports.length === 0) {
+      return NextResponse.json(
+        { error: "No reports found to export" },
+        { status: 404 }
+      );
+    }
+
     // Generate Excel-style CSV content
     const csvContent = generateCSV(filteredReports);
 
+    // Validate CSV content was generated
+    if (!csvContent || csvContent.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Failed to generate CSV content" },
+        { status: 500 }
+      );
+    }
+
+    // Add BOM for better Excel compatibility
+    const csvWithBOM = "\uFEFF" + csvContent;
+
     // Return as CSV (which Excel can open)
-    return new NextResponse(csvContent, {
+    return new NextResponse(csvWithBOM, {
       headers: {
-        "Content-Type": "text/csv",
+        "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="snow-removal-reports-${format(new Date(), "yyyy-MM-dd-HHmm")}.csv"`,
+        "Cache-Control": "no-cache",
       },
     });
 
@@ -203,9 +223,14 @@ function generateCSV(reports: any[]): string {
   // Escape CSV values
   const escapeCSV = (value: unknown): string => {
     if (value === null || value === undefined) return "";
-    const str = String(value);
-    if (str.includes('"') || str.includes(",") || str.includes("\n")) {
-      return `"${str.replace(/"/g, '""')}"`;
+    const str = String(value).trim();
+    if (
+      str.includes('"') ||
+      str.includes(",") ||
+      str.includes("\n") ||
+      str.includes("\r")
+    ) {
+      return `"${str.replace(/"/g, '""').replace(/\r?\n/g, " ")}"`;
     }
     return str;
   };
@@ -215,51 +240,97 @@ function generateCSV(reports: any[]): string {
     str?.replace(/([A-Z])/g, " $1").trim() || "";
 
   // Generate rows
-  const rows = reports.map((report) =>
-    [
-      format(new Date(report.date), "yyyy-MM-dd"),
-      report.sites?.name || report.site_name || "",
-      report.sites?.address || "",
-      report.sites?.priority || "",
-      report.sites?.size_sqft || "",
-      report.employees?.employee_number || "",
-      report.employees?.users?.display_name || "",
-      report.employees?.users?.email || "",
-      report.operator || "",
-      report.is_draft ? "Draft" : "Submitted",
-      formatTime(report.dispatched_for),
-      formatTime(report.start_time),
-      formatTime(report.finish_time),
-      report.air_temperature || "",
-      report.daytime_high || "",
-      report.daytime_low || "",
-      formatCapitalized(report.temperature_trend),
-      report.snowfall_accumulation_cm || "",
-      formatCapitalized(report.precipitation_type),
-      formatCapitalized(report.conditions_upon_arrival),
-      formatCapitalized(report.snow_removal_method),
-      formatCapitalized(report.follow_up_plans),
-      report.truck || "",
-      report.tractor || "",
-      report.handwork || "",
-      report.salt_used_kg || "",
-      report.deicing_material_kg || "",
-      report.salt_alternative_kg || "",
-      report.gps_latitude || "",
-      report.gps_longitude || "",
-      report.gps_accuracy || "",
-      report.comments || "",
-      format(new Date(report.created_at), "yyyy-MM-dd HH:mm:ss"),
-      format(new Date(report.updated_at), "yyyy-MM-dd HH:mm:ss"),
-      report.submitted_at
-        ? format(new Date(report.submitted_at), "yyyy-MM-dd HH:mm:ss")
-        : "",
-      report.sites?.companies?.name || "",
-      report.sites?.companies?.address || "",
-      report.sites?.companies?.phone || "",
-      report.sites?.companies?.email || "",
-    ].map(escapeCSV)
-  );
+  const rows = reports.map((report) => {
+    try {
+      return [
+        format(new Date(report.date), "yyyy-MM-dd"),
+        report.sites?.name || report.site_name || "",
+        report.sites?.address || "",
+        report.sites?.priority || "",
+        report.sites?.size_sqft || "",
+        report.employees?.employee_number || "",
+        report.employees?.users?.display_name || "",
+        report.employees?.users?.email || "",
+        report.operator || "",
+        report.is_draft ? "Draft" : "Submitted",
+        formatTime(report.dispatched_for),
+        formatTime(report.start_time),
+        formatTime(report.finish_time),
+        report.air_temperature || "",
+        report.daytime_high || "",
+        report.daytime_low || "",
+        formatCapitalized(report.temperature_trend),
+        report.snowfall_accumulation_cm || "",
+        formatCapitalized(report.precipitation_type),
+        formatCapitalized(report.conditions_upon_arrival),
+        formatCapitalized(report.snow_removal_method),
+        formatCapitalized(report.follow_up_plans),
+        report.truck || "",
+        report.tractor || "",
+        report.handwork || "",
+        report.salt_used_kg || "",
+        report.deicing_material_kg || "",
+        report.salt_alternative_kg || "",
+        report.gps_latitude || "",
+        report.gps_longitude || "",
+        report.gps_accuracy || "",
+        report.comments || "",
+        format(new Date(report.created_at), "yyyy-MM-dd HH:mm:ss"),
+        format(new Date(report.updated_at), "yyyy-MM-dd HH:mm:ss"),
+        report.submitted_at
+          ? format(new Date(report.submitted_at), "yyyy-MM-dd HH:mm:ss")
+          : "",
+        report.sites?.companies?.name || "",
+        report.sites?.companies?.address || "",
+        report.sites?.companies?.phone || "",
+        report.sites?.companies?.email || "",
+      ].map(escapeCSV);
+    } catch (error) {
+      console.error("Error processing report row:", error);
+      // Return a row with basic info if processing fails
+      return [
+        "Error",
+        report.sites?.name || report.site_name || "Unknown",
+        "Processing Error",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ].map(escapeCSV);
+    }
+  });
 
   // Combine headers and rows
   const csvLines = [
