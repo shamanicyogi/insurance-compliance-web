@@ -101,6 +101,7 @@ export default withAuth(
 
         // Allow unauthenticated access to auth and snow removal onboarding pages
         if (
+          pathname === "/" ||
           pathname.startsWith("/login") ||
           pathname.startsWith("/signup") ||
           pathname.startsWith("/snow-removal/onboarding")
@@ -117,6 +118,7 @@ export default withAuth(
 
 export const config = {
   matcher: [
+    "/",
     // All app pages require employee records
     "/dashboard/:path*",
     "/profile/:path*",
