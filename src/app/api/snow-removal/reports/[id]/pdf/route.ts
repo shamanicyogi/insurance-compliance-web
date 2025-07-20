@@ -51,41 +51,56 @@ async function GET(
       .select(
         `
         *,
-        sites (name, address, priority),
-        employees (employee_number),
-        companies!sites_company_id_fkey (name, address, phone, email)
+        sites!inner(name, address, priority, company_id),
+        employees!inner(employee_number)
       `
       )
       .eq("id", reportId)
       .single();
 
-    if (reportError || !report) {
+    if (reportError) {
+      secureError("Error fetching report for PDF:", reportError);
+      return NextResponse.json(
+        { error: `Report query failed: ${reportError.message}` },
+        { status: 500 }
+      );
+    }
+
+    if (!report) {
       return NextResponse.json({ error: "Report not found" }, { status: 404 });
     }
 
     // Verify report belongs to user's company
-    const { data: reportSite, error: siteError } = await supabase
-      .from("sites")
-      .select("company_id")
-      .eq("id", report.site_id)
-      .single();
-
-    if (siteError || reportSite?.company_id !== employee.company_id) {
+    if (report.sites?.company_id !== employee.company_id) {
       return NextResponse.json(
         { error: "Access denied to this report" },
         { status: 403 }
       );
     }
 
-    // Generate PDF content as HTML
-    const htmlContent = generateReportHTML(report);
+    // Get company information for the report
+    const { data: company, error: companyError } = await supabase
+      .from("companies")
+      .select("name, address, phone, email")
+      .eq("id", employee.company_id)
+      .single();
 
-    // For now, return HTML - in production you'd use a proper PDF library
-    // like puppeteer, @react-pdf/renderer, or jsPDF
+    if (companyError) {
+      secureError("Error fetching company data for PDF:", companyError);
+      // Continue without company data rather than failing
+    }
+
+    // Generate PDF content as HTML
+    const htmlContent = generateReportHTML(report, company);
+
+    // Return HTML content that can be opened in browser or saved
+    const fileName = `snow-report-${(report.sites?.name || "unknown").replace(/[^a-zA-Z0-9]/g, "-")}-${format(new Date(report.date), "yyyy-MM-dd")}`;
+
     return new NextResponse(htmlContent, {
       headers: {
-        "Content-Type": "text/html",
-        "Content-Disposition": `attachment; filename="snow-report-${report.sites?.name || "unknown"}-${format(new Date(report.date), "yyyy-MM-dd")}.html"`,
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Disposition": `inline; filename="${fileName}.html"`,
+        "Cache-Control": "no-cache",
       },
     });
 
@@ -99,15 +114,21 @@ async function GET(
     // });
   } catch (error) {
     secureError("Error generating PDF:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to generate PDF" },
+      {
+        error: "Failed to generate PDF",
+        details: errorMessage,
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     );
   }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function generateReportHTML(report: any): string {
+function generateReportHTML(report: any, company?: any): string {
   const formatTime = (timeString: string) => timeString || "Not set";
   const formatTemp = (temp: number) => `${temp}°C`;
   const formatCapitalized = (str: string) =>
@@ -217,9 +238,9 @@ function generateReportHTML(report: any): string {
 <body>
     <div class="header">
         <div class="company-info">
-            ${report.companies?.name || "Snow Removal Company"}<br>
-            ${report.companies?.address || ""}<br>
-            ${report.companies?.phone || ""} | ${report.companies?.email || ""}
+            ${company?.name || "Snow Removal Company"}<br>
+            ${company?.address || ""}<br>
+            ${company?.phone || ""} | ${company?.email || ""}
         </div>
         <div class="report-title">Snow Removal Report</div>
         <div style="font-size: 16px; color: #6b7280;">

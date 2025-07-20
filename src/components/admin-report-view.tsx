@@ -95,14 +95,20 @@ export function AdminReportView({
         const a = document.createElement("a");
         a.style.display = "none";
         a.href = url;
-        a.download = `snow-report-${report.sites?.name || "unknown"}-${format(new Date(report.date), "yyyy-MM-dd")}.pdf`;
+        a.download = `snow-report-${(report.sites?.name || "unknown").replace(/[^a-zA-Z0-9]/g, "-")}-${format(new Date(report.date), "yyyy-MM-dd")}.html`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast.success("PDF downloaded successfully");
+        toast.success("Report downloaded successfully");
       } else {
-        toast.error("Failed to generate PDF");
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Unknown error" }));
+        console.error("PDF generation failed:", errorData);
+        toast.error(
+          `Failed to generate PDF: ${errorData.details || errorData.error || "Unknown error"}`
+        );
       }
     } catch (error) {
       console.error("Error downloading PDF:", error);
@@ -159,7 +165,7 @@ export function AdminReportView({
                   className="flex items-center gap-2"
                 >
                   <Download className="h-4 w-4" />
-                  {downloadingPdf ? "Generating..." : "Download PDF"}
+                  {downloadingPdf ? "Generating..." : "Download Report"}
                 </Button>
                 <Button
                   variant="outline"

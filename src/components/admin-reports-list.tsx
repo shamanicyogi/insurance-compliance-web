@@ -272,7 +272,7 @@ export function AdminReportsList({
                 className="flex items-center gap-2"
               >
                 <FileSpreadsheet className="h-4 w-4" />
-                {exporting ? "Exporting..." : "Export Excel"}
+                {exporting ? "Exporting..." : "Export CSV"}
               </Button>
             </div>
           </div>
