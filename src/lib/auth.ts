@@ -101,22 +101,23 @@ export const authOptions: NextAuthOptions = {
             return false;
           }
 
-          // Find the user in auth.users by email
-          const supabaseUser = authUser.users.find(
-            (u) => u.email === user.email
-          );
+          console.log(authUser, "authUser 😱");
+          console.log(authUser.users, "authUser.users 😱");
 
-          if (!supabaseUser) {
-            console.error("Could not find Supabase auth user for:", user.email);
-            return false;
-          }
+          // // Find the user in auth.users by email
+          // const supabaseUser = authUser.users.find(
+          //   (u) => u.email === user.email
+          // );
+
+          // if (!supabaseUser) {
+          //   console.error("Could not find Supabase auth user for:", user.email);
+          //   return false;
+          // }
 
           const { error: insertError } = await supabaseAdmin
             .from("users")
             .insert({
-              id: supabaseUser.id, // Use the Supabase UUID
               email: user.email,
-              auth_user_id: supabaseUser.id,
               display_name: user.name || user.email?.split("@")[0],
               created_at: new Date().toISOString(),
             });
