@@ -160,6 +160,12 @@ export function SnowRemovalForm({
       salt_used_kg: 0,
       deicing_material_kg: 0,
       salt_alternative_kg: 0,
+      // Fix controlled/uncontrolled input warnings
+      truck: "",
+      tractor: "",
+      handwork: "",
+      finish_time: "",
+      comments: "",
     },
   });
 
@@ -542,7 +548,12 @@ export function SnowRemovalForm({
                 name="truck"
                 control={control}
                 render={({ field }) => (
-                  <Input {...field} id="truck" placeholder="Truck identifier" />
+                  <Input
+                    {...field}
+                    value={field.value || ""}
+                    id="truck"
+                    placeholder="Truck identifier"
+                  />
                 )}
               />
             </div>
@@ -555,6 +566,7 @@ export function SnowRemovalForm({
                 render={({ field }) => (
                   <Input
                     {...field}
+                    value={field.value || ""}
                     id="tractor"
                     placeholder="Tractor identifier"
                   />
@@ -570,6 +582,7 @@ export function SnowRemovalForm({
                 render={({ field }) => (
                   <Input
                     {...field}
+                    value={field.value || ""}
                     id="handwork"
                     placeholder="Manual work details"
                   />
