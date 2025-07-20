@@ -2,6 +2,7 @@ import type { Viewport, Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/auth-provider";
+import { CompanyProvider } from "@/lib/contexts/company-context";
 import "./globals.css";
 import { Providers as QueryProvider } from "@/components/query-provider";
 import { GlobalErrorHandler } from "@/components/global-error-handler";
@@ -74,15 +75,17 @@ export default function RootLayout({
       <body>
         <QueryProvider>
           <AuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              {children}
-              <Toaster position="top-right" />
-            </ThemeProvider>
+            <CompanyProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                {children}
+                <Toaster position="top-right" />
+              </ThemeProvider>
+            </CompanyProvider>
           </AuthProvider>
         </QueryProvider>
         <GlobalErrorHandler />
