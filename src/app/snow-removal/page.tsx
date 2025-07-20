@@ -76,8 +76,8 @@ export default function SnowRemovalPage() {
 
   // Filters
   const [dateFilter, setDateFilter] = useState("");
-  const [siteFilter, setSiteFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [siteFilter, setSiteFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // Redirect if not authenticated
   // useEffect(() => {
@@ -125,7 +125,8 @@ export default function SnowRemovalPage() {
   // Filter reports based on selected filters
   const filteredReports = reports.filter((report) => {
     if (dateFilter && !report.date.startsWith(dateFilter)) return false;
-    if (siteFilter && report.site_id !== siteFilter) return false;
+    if (siteFilter && siteFilter !== "all" && report.site_id !== siteFilter)
+      return false;
     if (statusFilter === "draft" && !report.is_draft) return false;
     if (statusFilter === "submitted" && report.is_draft) return false;
     return true;
@@ -156,8 +157,8 @@ export default function SnowRemovalPage() {
 
   const clearFilters = () => {
     setDateFilter("");
-    setSiteFilter("");
-    setStatusFilter("");
+    setSiteFilter("all");
+    setStatusFilter("all");
   };
 
   if (status === "loading" || loading) {
@@ -293,7 +294,7 @@ export default function SnowRemovalPage() {
                         <SelectValue placeholder="All sites" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All sites</SelectItem>
+                        <SelectItem value="all">All sites</SelectItem>
                         {sites.map((site) => (
                           <SelectItem key={site.id} value={site.id}>
                             {site.name}
@@ -313,7 +314,7 @@ export default function SnowRemovalPage() {
                         <SelectValue placeholder="All statuses" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All statuses</SelectItem>
+                        <SelectItem value="all">All statuses</SelectItem>
                         <SelectItem value="draft">Drafts</SelectItem>
                         <SelectItem value="submitted">Submitted</SelectItem>
                       </SelectContent>
