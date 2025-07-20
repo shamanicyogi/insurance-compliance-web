@@ -57,7 +57,7 @@ export function SignUpForm() {
           Create an account
         </h1>
         <p className="text-sm text-muted-foreground">
-          Choose how you&apos;d like to join Precision
+          Choose how you&apos;d like to join SlipCheck
         </p>
       </div>
 
