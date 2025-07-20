@@ -77,9 +77,24 @@ export default withAuth(
       const hasEmployee = await hasEmployeeRecord(token.sub);
 
       if (!hasEmployee) {
-        return NextResponse.redirect(
-          new URL("/snow-removal/onboarding", req.url)
-        );
+        const onboardingUrl = new URL("/snow-removal/onboarding", req.url);
+
+        // 🎯 Preserve invitation parameters if they exist
+        const invitation =
+          req.nextUrl.searchParams.get("invitation") ||
+          req.nextUrl.searchParams.get("invitationCode");
+        const company = req.nextUrl.searchParams.get("company");
+        const inviter = req.nextUrl.searchParams.get("inviter");
+        const email = req.nextUrl.searchParams.get("email");
+
+        if (invitation) {
+          onboardingUrl.searchParams.set("invitation", invitation);
+          if (company) onboardingUrl.searchParams.set("company", company);
+          if (inviter) onboardingUrl.searchParams.set("inviter", inviter);
+          if (email) onboardingUrl.searchParams.set("email", email);
+        }
+
+        return NextResponse.redirect(onboardingUrl);
       }
     }
 

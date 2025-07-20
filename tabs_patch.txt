@@ -1,0 +1,15 @@
+          <TabsList className={`grid w-full ${invitationCode ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            {!invitationCode && (
+              <TabsTrigger value="create" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Create Company
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="join" className="flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              {invitationCode ? 'Complete Setup' : 'Join Company'}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Create Company Tab - Hidden for invited users */}
+          {!invitationCode && (

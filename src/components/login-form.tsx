@@ -35,37 +35,37 @@ React.ComponentProps<"form">) {
     strava: false,
   });
   const [email, setEmail] = React.useState(prefilledEmail || "");
-
-  // Auto-join company after authentication if invitation code exists
-  React.useEffect(() => {
-    const handleInvitationJoin = async () => {
-      if (session?.user && invitationCode) {
-        try {
-          const response = await fetch("/api/snow-removal/companies/join", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-            body: JSON.stringify({ invitationCode }),
-          });
-
-          const data = await response.json();
-
-          if (response.ok && data.success) {
-            toast.success(`Welcome to ${data.companyName}!`);
-            router.push("/dashboard");
-          } else {
-            toast.error(data.error || "Failed to join company");
-          }
-        } catch (error) {
-          console.error("Error joining company:", error);
-          toast.error("Failed to join company");
-        }
-      }
-    };
-
-    handleInvitationJoin();
+  // 
+  //   // Auto-join company after authentication if invitation code exists
+  //   React.useEffect(() => {
+  //     const handleInvitationJoin = async () => {
+  //       if (session?.user && invitationCode) {
+  //         try {
+  //           const response = await fetch("/api/snow-removal/companies/join", {
+  //             method: "POST",
+  //             headers: {
+  //               "Content-Type": "application/json",
+  //             },
+  //             credentials: "include",
+  //             body: JSON.stringify({ invitationCode }),
+  //           });
+  // 
+  //           const data = await response.json();
+  // 
+  //           if (response.ok && data.success) {
+  //             toast.success(`Welcome to ${data.companyName}!`);
+  //             router.push("/dashboard");
+  //           } else {
+  //             toast.error(data.error || "Failed to join company");
+  //           }
+  //         } catch (error) {
+  //           console.error("Error joining company:", error);
+  //           toast.error("Failed to join company");
+  //         }
+  //       }
+  //     };
+  // 
+  //     handleInvitationJoin();
   }, [session, invitationCode, router]);
 
   const handleOAuthSignIn = async (provider: Provider) => {
