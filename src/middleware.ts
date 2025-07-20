@@ -66,8 +66,26 @@ export default withAuth(
     // Routes that don't require employee records
     const isPublicRoute = isAuthPage || isSnowRemovalOnboarding;
 
-    // If user is logged in and trying to access login/signup pages, redirect to dashboard
+    // If user is logged in and trying to access login/signup pages
     if (isAuthenticated && isAuthPage) {
+      // Check if there are invitation parameters - if so, redirect to onboarding with them
+      const invitation =
+        req.nextUrl.searchParams.get("invitation") ||
+        req.nextUrl.searchParams.get("invitationCode");
+      const company = req.nextUrl.searchParams.get("company");
+      const inviter = req.nextUrl.searchParams.get("inviter");
+      const email = req.nextUrl.searchParams.get("email");
+
+      if (invitation) {
+        const onboardingUrl = new URL("/snow-removal/onboarding", req.url);
+        onboardingUrl.searchParams.set("invitation", invitation);
+        if (company) onboardingUrl.searchParams.set("company", company);
+        if (inviter) onboardingUrl.searchParams.set("inviter", inviter);
+        if (email) onboardingUrl.searchParams.set("email", email);
+        return NextResponse.redirect(onboardingUrl);
+      }
+
+      // Otherwise redirect to dashboard
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 

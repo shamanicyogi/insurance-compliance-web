@@ -112,7 +112,7 @@ async function POST(req: NextRequest) {
     }
 
     // Create default company settings
-    const { error: settingsError } = await supabaseAdmin
+    const { data: settings, error: settingsError } = await supabaseAdmin
       .from("company_settings")
       .insert({
         company_id: company.id,
@@ -124,11 +124,22 @@ async function POST(req: NextRequest) {
         require_gps_verification: true,
         allow_draft_editing_hours: 24,
         notification_settings: {},
-      });
+      })
+      .select()
+      .single();
 
     if (settingsError) {
+      console.error("❌ Company settings creation failed:", settingsError);
       secureError("Failed to create company settings:", settingsError);
-      // Don't fail the request for this, just log the error
+
+      // Rollback - delete the company and employee if settings creation failed
+      await supabaseAdmin.from("employees").delete().eq("id", employee.id);
+      await supabaseAdmin.from("companies").delete().eq("id", company.id);
+
+      return NextResponse.json(
+        { error: "Failed to create company settings. Please try again." },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(
