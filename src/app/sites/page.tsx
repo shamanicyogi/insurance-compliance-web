@@ -2,7 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Plus, MapPin, Edit, MoreVertical, ExternalLink } from "lucide-react";
+import {
+  Plus,
+  MapPin,
+  Edit,
+  MoreVertical,
+  ExternalLink,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -55,6 +62,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppLayout } from "@/components/app-layout";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCompanyPermissions } from "@/lib/contexts/company-context";
 
 interface Site {
   id: string;
@@ -84,13 +92,17 @@ interface NewSiteForm {
 export default function SitesPage() {
   const { status } = useSession();
   const isMobile = useIsMobile();
+  const { canManageEmployees } = useCompanyPermissions(); // Only owners and admins can delete sites
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMobileActionsOpen, setIsMobileActionsOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
+  const [deletingSite, setDeletingSite] = useState<Site | null>(null);
   const [selectedMobileSite, setSelectedMobileSite] = useState<Site | null>(
     null
   );
@@ -418,6 +430,65 @@ export default function SitesPage() {
     }
   };
 
+  const handleMobileDelete = () => {
+    if (selectedMobileSite) {
+      setDeletingSite(selectedMobileSite);
+      setIsDeleteDialogOpen(true);
+      setIsMobileActionsOpen(false);
+    }
+  };
+
+  const openDeleteDialog = (site: Site) => {
+    setDeletingSite(site);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteSite = async () => {
+    if (!deletingSite) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(
+        `/api/snow-removal/sites/${deletingSite.id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+
+        if (result.soft_delete) {
+          // Site was deactivated due to existing reports
+          setSites((prev) =>
+            prev.map((site) =>
+              site.id === deletingSite.id ? { ...site, is_active: false } : site
+            )
+          );
+          toast.success("Site deactivated successfully (has existing reports)");
+        } else {
+          // Site was completely deleted
+          setSites((prev) =>
+            prev.filter((site) => site.id !== deletingSite.id)
+          );
+          toast.success("Site deleted successfully");
+        }
+
+        setIsDeleteDialogOpen(false);
+        setDeletingSite(null);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to delete site");
+      }
+    } catch (error) {
+      console.error("Error deleting site:", error);
+      toast.error("Failed to delete site");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const viewOnMap = (site: Site) => {
     // Create Google Maps URL with the site address
     const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(site.address)}`;
@@ -617,6 +688,15 @@ export default function SitesPage() {
                                   <ExternalLink className="h-4 w-4 mr-2" />
                                   View on Map
                                 </DropdownMenuItem>
+                                {canManageEmployees && (
+                                  <DropdownMenuItem
+                                    onClick={() => openDeleteDialog(site)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Site
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
@@ -945,9 +1025,54 @@ export default function SitesPage() {
                 <ExternalLink className="h-4 w-4" />
                 View on Map
               </Button>
+              {canManageEmployees && (
+                <Button
+                  className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                  variant="outline"
+                  onClick={handleMobileDelete}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Site
+                </Button>
+              )}
             </div>
           </SheetContent>
         </Sheet>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Site</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete &ldquo;{deletingSite?.name}
+                &rdquo;?
+                {deletingSite && (
+                  <span className="block mt-2 text-sm text-muted-foreground">
+                    This action cannot be undone. If this site has existing
+                    reports, it will be deactivated instead of deleted.
+                  </span>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteSite}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Site"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

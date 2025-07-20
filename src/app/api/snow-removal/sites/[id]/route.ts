@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { withErrorHandling } from "@/lib/api-error-handler";
 import { secureError } from "@/lib/utils/secure-logger";
 
 /**
  * PUT /api/snow-removal/sites/[id]
- * Update an existing site (managers and above only)
+ * Update a site (managers and above only)
  */
 async function PUT(
   req: NextRequest,
@@ -19,7 +18,7 @@ async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id: siteId } = await params;
 
     // Get employee record with company and role info
     const { data: employee, error: employeeError } = await supabase
@@ -43,6 +42,24 @@ async function PUT(
     if (!canManageSites) {
       return NextResponse.json(
         { error: "Insufficient permissions to update sites" },
+        { status: 403 }
+      );
+    }
+
+    // Verify site belongs to user's company
+    const { data: existingSite, error: siteCheckError } = await supabase
+      .from("sites")
+      .select("company_id")
+      .eq("id", siteId)
+      .single();
+
+    if (siteCheckError || !existingSite) {
+      return NextResponse.json({ error: "Site not found" }, { status: 404 });
+    }
+
+    if (existingSite.company_id !== employee.company_id) {
+      return NextResponse.json(
+        { error: "Access denied to this site" },
         { status: 403 }
       );
     }
@@ -77,79 +94,37 @@ async function PUT(
       );
     }
 
-    // Validate coordinates if provided
-    if (
-      latitude !== undefined &&
-      (typeof latitude !== "number" || latitude < -90 || latitude > 90)
-    ) {
-      return NextResponse.json(
-        { error: "Latitude must be a number between -90 and 90" },
-        { status: 400 }
-      );
-    }
+    // Prepare update data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {
+      name: name.trim(),
+      address: address.trim(),
+      priority,
+      updated_at: new Date().toISOString(),
+    };
 
-    if (
-      longitude !== undefined &&
-      (typeof longitude !== "number" || longitude < -180 || longitude > 180)
-    ) {
-      return NextResponse.json(
-        { error: "Longitude must be a number between -180 and 180" },
-        { status: 400 }
-      );
-    }
-
-    // Verify the site belongs to the user's company
-    const { data: existingSite, error: siteCheckError } = await supabase
-      .from("sites")
-      .select("id, company_id")
-      .eq("id", id)
-      .single();
-
-    if (
-      siteCheckError ||
-      !existingSite ||
-      existingSite.company_id !== employee.company_id
-    ) {
-      return NextResponse.json(
-        { error: "Site not found or access denied" },
-        { status: 404 }
-      );
-    }
+    // Add optional fields if provided
+    if (size_sqft !== undefined) updateData.size_sqft = size_sqft;
+    if (typical_salt_usage_kg !== undefined)
+      updateData.typical_salt_usage_kg = typical_salt_usage_kg;
+    if (latitude !== undefined) updateData.latitude = latitude;
+    if (longitude !== undefined) updateData.longitude = longitude;
+    if (contact_phone !== undefined)
+      updateData.contact_phone = contact_phone?.trim() || null;
+    if (special_instructions !== undefined)
+      updateData.special_instructions = special_instructions?.trim() || null;
 
     // Update the site
-    const { data: site, error: updateError } = await supabase
+    const { data: site, error } = await supabase
       .from("sites")
-      .update({
-        name: name.trim(),
-        address: address.trim(),
-        priority,
-        size_sqft: size_sqft ? parseInt(size_sqft) : null,
-        typical_salt_usage_kg: typical_salt_usage_kg
-          ? parseFloat(typical_salt_usage_kg)
-          : null,
-        latitude: latitude !== undefined ? latitude : null,
-        longitude: longitude !== undefined ? longitude : null,
-        contact_phone: contact_phone ? contact_phone.trim() : null,
-        special_instructions: special_instructions
-          ? special_instructions.trim()
-          : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id)
+      .update(updateData)
+      .eq("id", siteId)
       .select()
       .single();
 
-    if (updateError) {
-      throw updateError;
-    }
+    if (error) throw error;
 
-    return NextResponse.json(
-      {
-        message: "Site updated successfully",
-        site,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ site });
   } catch (error) {
     secureError("Error updating site:", error);
     return NextResponse.json(
@@ -159,7 +134,120 @@ async function PUT(
   }
 }
 
-// Wrap handler with error handling
-const wrappedPUT = withErrorHandling(PUT);
+/**
+ * DELETE /api/snow-removal/sites/[id]
+ * Delete a site (owners and admins only)
+ */
+async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-export { wrappedPUT as PUT };
+    const { id: siteId } = await params;
+
+    // Get employee record with company and role info
+    const { data: employee, error: employeeError } = await supabase
+      .from("employees")
+      .select("company_id, role")
+      .eq("user_id", session.user.id)
+      .eq("is_active", true)
+      .single();
+
+    if (employeeError || !employee) {
+      return NextResponse.json(
+        { error: "Employee not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check if user has permission to delete sites (owners and admins only)
+    const canDeleteSites = ["owner", "admin"].includes(employee.role);
+    if (!canDeleteSites) {
+      return NextResponse.json(
+        { error: "Insufficient permissions to delete sites" },
+        { status: 403 }
+      );
+    }
+
+    // Verify site belongs to user's company
+    const { data: existingSite, error: siteCheckError } = await supabase
+      .from("sites")
+      .select("company_id, name")
+      .eq("id", siteId)
+      .single();
+
+    if (siteCheckError || !existingSite) {
+      return NextResponse.json({ error: "Site not found" }, { status: 404 });
+    }
+
+    if (existingSite.company_id !== employee.company_id) {
+      return NextResponse.json(
+        { error: "Access denied to this site" },
+        { status: 403 }
+      );
+    }
+
+    // Check if site has any reports associated with it
+    const { data: reportsCount, error: reportsError } = await supabase
+      .from("snow_removal_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("site_id", siteId);
+
+    if (reportsError) {
+      secureError("Error checking site reports:", reportsError);
+      return NextResponse.json(
+        { error: "Failed to check site reports" },
+        { status: 500 }
+      );
+    }
+
+    // If site has reports, soft delete by marking as inactive
+    // If no reports, hard delete the site
+    if (reportsCount && reportsCount.length > 0) {
+      // Soft delete - mark as inactive
+      const { data: site, error: updateError } = await supabase
+        .from("sites")
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", siteId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      return NextResponse.json({
+        message: "Site deactivated successfully (has existing reports)",
+        site,
+        soft_delete: true,
+      });
+    } else {
+      // Hard delete - remove completely
+      const { error: deleteError } = await supabase
+        .from("sites")
+        .delete()
+        .eq("id", siteId);
+
+      if (deleteError) throw deleteError;
+
+      return NextResponse.json({
+        message: "Site deleted successfully",
+        soft_delete: false,
+      });
+    }
+  } catch (error) {
+    secureError("Error deleting site:", error);
+    return NextResponse.json(
+      { error: "Failed to delete site" },
+      { status: 500 }
+    );
+  }
+}
+
+export { PUT, DELETE };
