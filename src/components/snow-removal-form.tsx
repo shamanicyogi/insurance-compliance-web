@@ -142,6 +142,7 @@ export function SnowRemovalForm({
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(false);
   const [sitesLoading, setSitesLoading] = useState(true);
+  const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [calculations, setCalculations] = useState<Calculations | null>(null);
   const [gpsLocation, setGpsLocation] = useState<{
@@ -230,6 +231,10 @@ export function SnowRemovalForm({
     const autoFillWeatherData = async () => {
       if (!selectedSiteId) {
         console.log("No site selected, skipping weather fetch");
+        // Clear weather data when no site is selected
+        setWeatherData(null);
+        setCalculations(null);
+        setWeatherLoading(false);
         return;
       }
 
@@ -238,13 +243,16 @@ export function SnowRemovalForm({
 
       if (!selectedSite?.latitude || !selectedSite?.longitude) {
         console.log("Site missing coordinates, skipping weather fetch");
+        setWeatherData(null);
+        setCalculations(null);
+        setWeatherLoading(false);
         return;
       }
 
       console.log(
         `Fetching weather for: ${selectedSite.name} (${selectedSite.latitude}, ${selectedSite.longitude})`
       );
-      setLoading(true);
+      setWeatherLoading(true);
 
       try {
         // Get weather data from our secure API endpoint
@@ -362,7 +370,7 @@ export function SnowRemovalForm({
         setCalculations(fallbackCalculations);
         setValue("salt_used_kg", fallbackCalculations.salt_recommendation_kg);
       } finally {
-        setLoading(false);
+        setWeatherLoading(false);
       }
     };
 
@@ -660,7 +668,39 @@ export function SnowRemovalForm({
       </Card>
 
       {/* Weather Information */}
-      {weatherData && (
+      {weatherLoading ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Thermometer className="h-4 w-4" />
+              Weather Conditions
+              <Badge variant="secondary" className="animate-pulse">
+                Fetching weather data...
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center space-y-2">
+                <Skeleton className="h-4 w-20 mx-auto" />
+                <Skeleton className="h-8 w-16 mx-auto" />
+              </div>
+              <div className="text-center space-y-2">
+                <Skeleton className="h-4 w-16 mx-auto" />
+                <Skeleton className="h-6 w-24 mx-auto" />
+              </div>
+              <div className="text-center space-y-2">
+                <Skeleton className="h-4 w-20 mx-auto" />
+                <Skeleton className="h-6 w-20 mx-auto" />
+              </div>
+              <div className="text-center space-y-2">
+                <Skeleton className="h-4 w-16 mx-auto" />
+                <Skeleton className="h-6 w-12 mx-auto" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : weatherData ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -713,7 +753,7 @@ export function SnowRemovalForm({
             </div> */}
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* Work Details */}
       <Card>
@@ -802,9 +842,16 @@ export function SnowRemovalForm({
           <CardTitle className="flex items-center gap-2">
             <Calculator className="h-4 w-4" />
             Material Usage
-            {calculations && <Badge variant="secondary">Auto-calculated</Badge>}
+            {weatherLoading && (
+              <Badge variant="secondary" className="animate-pulse">
+                Calculating...
+              </Badge>
+            )}
+            {calculations && !weatherLoading && (
+              <Badge variant="secondary">Auto-calculated</Badge>
+            )}
           </CardTitle>
-          {calculations && (
+          {calculations && !weatherLoading && (
             <CardDescription>
               Recommended amounts based on site size, weather conditions, and
               temperature.
@@ -812,86 +859,116 @@ export function SnowRemovalForm({
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          {calculations && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Recommended salt usage: {calculations.salt_recommendation_kg} kg
-                (Estimated cost: ${calculations.material_cost_estimate})
-              </AlertDescription>
-            </Alert>
+          {weatherLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </div>
+          ) : (
+            <>
+              {calculations && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Recommended salt usage:{" "}
+                    {calculations.salt_recommendation_kg} kg (Estimated cost: $
+                    {calculations.material_cost_estimate})
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="salt_used_kg">Salt Used (kg)</Label>
+                  <Controller
+                    name="salt_used_kg"
+                    control={control}
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <Input
+                        {...field}
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={
+                          value !== undefined && value !== null
+                            ? String(value)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          onChange(
+                            e.target.value ? parseFloat(e.target.value) : 0
+                          )
+                        }
+                        id="salt_used_kg"
+                      />
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deicing_material_kg">
+                    Deicing Material (kg)
+                  </Label>
+                  <Controller
+                    name="deicing_material_kg"
+                    control={control}
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <Input
+                        {...field}
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={
+                          value !== undefined && value !== null
+                            ? String(value)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          onChange(
+                            e.target.value ? parseFloat(e.target.value) : 0
+                          )
+                        }
+                        id="deicing_material_kg"
+                      />
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="salt_alternative_kg">
+                    Salt Alternative (kg)
+                  </Label>
+                  <Controller
+                    name="salt_alternative_kg"
+                    control={control}
+                    render={({ field: { onChange, value, ...field } }) => (
+                      <Input
+                        {...field}
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={
+                          value !== undefined && value !== null
+                            ? String(value)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          onChange(
+                            e.target.value ? parseFloat(e.target.value) : 0
+                          )
+                        }
+                        id="salt_alternative_kg"
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+            </>
           )}
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="salt_used_kg">Salt Used (kg)</Label>
-              <Controller
-                name="salt_used_kg"
-                control={control}
-                render={({ field: { onChange, value, ...field } }) => (
-                  <Input
-                    {...field}
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={
-                      value !== undefined && value !== null ? String(value) : ""
-                    }
-                    onChange={(e) =>
-                      onChange(e.target.value ? parseFloat(e.target.value) : 0)
-                    }
-                    id="salt_used_kg"
-                  />
-                )}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="deicing_material_kg">Deicing Material (kg)</Label>
-              <Controller
-                name="deicing_material_kg"
-                control={control}
-                render={({ field: { onChange, value, ...field } }) => (
-                  <Input
-                    {...field}
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={
-                      value !== undefined && value !== null ? String(value) : ""
-                    }
-                    onChange={(e) =>
-                      onChange(e.target.value ? parseFloat(e.target.value) : 0)
-                    }
-                    id="deicing_material_kg"
-                  />
-                )}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="salt_alternative_kg">Salt Alternative (kg)</Label>
-              <Controller
-                name="salt_alternative_kg"
-                control={control}
-                render={({ field: { onChange, value, ...field } }) => (
-                  <Input
-                    {...field}
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={
-                      value !== undefined && value !== null ? String(value) : ""
-                    }
-                    onChange={(e) =>
-                      onChange(e.target.value ? parseFloat(e.target.value) : 0)
-                    }
-                    id="salt_alternative_kg"
-                  />
-                )}
-              />
-            </div>
-          </div>
         </CardContent>
       </Card>
 
