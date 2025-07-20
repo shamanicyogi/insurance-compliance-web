@@ -137,6 +137,7 @@ export function SnowRemovalForm({
   const [loading, setLoading] = useState(false);
   const [sitesLoading, setSitesLoading] = useState(true);
   const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [calculations, setCalculations] = useState<Calculations | null>(null);
   const [gpsLocation, setGpsLocation] = useState<{
@@ -235,6 +236,7 @@ export function SnowRemovalForm({
         setWeatherData(null);
         setCalculations(null);
         setWeatherLoading(false);
+        setWeatherError(null);
         return;
       }
 
@@ -246,6 +248,7 @@ export function SnowRemovalForm({
         setWeatherData(null);
         setCalculations(null);
         setWeatherLoading(false);
+        setWeatherError(null);
         return;
       }
 
@@ -337,6 +340,7 @@ export function SnowRemovalForm({
 
         setWeatherData(transformedWeatherData);
         setCalculations(calculations);
+        setWeatherError(null); // Clear any previous errors
 
         // Auto-fill recommended amounts
         setValue("salt_used_kg", calculations.salt_recommendation_kg);
@@ -344,31 +348,24 @@ export function SnowRemovalForm({
         toast.success("Weather data loaded successfully");
       } catch (error) {
         console.error("Failed to load weather data:", error);
-        toast.error("Failed to load weather data - using fallback values");
 
-        // Fallback to basic data if weather service fails
-        const fallbackWeatherData = {
-          temperature: 0,
-          conditions: "clear" as WeatherCondition,
-          snowfall: 0,
-          trend: "steady" as WeatherTrend,
-          forecast_confidence: 0.1,
-          // Enhanced forecast data from API
-          daytime_high: 0,
-          daytime_low: 0,
-          forecast_id: undefined,
-        };
+        // Clear weather data on error
+        setWeatherData(null);
+        setCalculations(null);
 
-        const fallbackCalculations = {
-          salt_recommendation_kg: 25,
-          material_cost_estimate: 12.5,
-          temperature_factor: 1.0,
-          condition_factor: 1.0,
-        };
+        // Set error state
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to load weather data";
+        setWeatherError(errorMessage);
 
-        setWeatherData(fallbackWeatherData);
-        setCalculations(fallbackCalculations);
-        setValue("salt_used_kg", fallbackCalculations.salt_recommendation_kg);
+        toast.error(errorMessage, {
+          action: {
+            label: "Retry",
+            onClick: () => autoFillWeatherData(),
+          },
+        });
       } finally {
         setWeatherLoading(false);
       }
@@ -378,6 +375,33 @@ export function SnowRemovalForm({
       autoFillWeatherData();
     }
   }, [selectedSiteId, sites, setValue]);
+
+  const resetFormState = () => {
+    // Reset the form to default values
+    form.reset({
+      date: new Date().toISOString().split("T")[0],
+      dispatched_for: new Date().toTimeString().slice(0, 5),
+      start_time: new Date().toTimeString().slice(0, 5),
+      is_draft: true,
+      salt_used_kg: 0,
+      deicing_material_kg: 0,
+      salt_alternative_kg: 0,
+      truck: "",
+      tractor: "",
+      handwork: "",
+      finish_time: "",
+      comments: "",
+      site_id: "",
+      snow_removal_method: undefined,
+      follow_up_plans: undefined,
+    });
+
+    // Clear additional state
+    setWeatherData(null);
+    setCalculations(null);
+    setGpsLocation(null);
+    setWeatherError(null);
+  };
 
   const onFormSubmit = async (data: FormData) => {
     setLoading(true);
@@ -428,6 +452,8 @@ export function SnowRemovalForm({
 
       if (onSubmit) {
         onSubmit(reportData);
+        // Clear form after callback regardless of success/failure in parent
+        resetFormState();
       } else {
         const response = await fetch("/api/snow-removal/reports", {
           method: "POST",
@@ -442,9 +468,7 @@ export function SnowRemovalForm({
               ? "Report saved as draft"
               : "Report submitted successfully"
           );
-          form.reset();
-          setWeatherData(null);
-          setCalculations(null);
+          resetFormState();
         } else {
           const error = await response.json();
           toast.error(error.message || "Failed to submit report");
@@ -705,6 +729,39 @@ export function SnowRemovalForm({
                 <Skeleton className="h-6 w-12 mx-auto" />
               </div>
             </div>
+          </CardContent>
+        </Card>
+      ) : weatherError ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Thermometer className="h-4 w-4" />
+              Weather Conditions
+              <Badge variant="destructive">Error</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <div className="text-muted-foreground">
+              <p className="mb-2">Failed to load weather data</p>
+              <p className="text-sm">{weatherError}</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                const selectedSite = sites.find(
+                  (site) => site.id === selectedSiteId
+                );
+                if (selectedSite?.latitude && selectedSite?.longitude) {
+                  setWeatherError(null);
+                  // Trigger the weather fetch by calling the useEffect dependency
+                  setValue("site_id", selectedSiteId);
+                }
+              }}
+              className="mx-auto"
+            >
+              Retry Weather Fetch
+            </Button>
           </CardContent>
         </Card>
       ) : weatherData ? (

@@ -99,34 +99,15 @@ async function GET(req: NextRequest) {
       );
     }
 
-    // If no API key, return fallback data
+    // If no API key, return error
     if (!OPENWEATHER_API_KEY) {
-      console.warn(
-        "OpenWeatherMap API key not configured, using fallback weather data"
+      return NextResponse.json(
+        {
+          error: "Weather service not configured. Please contact support.",
+          code: "NO_API_KEY",
+        },
+        { status: 503 }
       );
-
-      const now = new Date();
-      const hour = now.getHours();
-      const day = now.getDate();
-
-      const tempBase = -5 + Math.sin(lat / 100 + (hour / 24) * Math.PI) * 8;
-      const isSnowy = (day + Math.floor(lat)) % 3 === 0;
-      const isHeavySnow = (day + Math.floor(lon)) % 7 === 0;
-
-      const fallbackData: WeatherApiResponse = {
-        temperature: Math.round(tempBase * 10) / 10,
-        conditions: isHeavySnow ? "heavySnow" : isSnowy ? "lightSnow" : "clear",
-        precipitation: isSnowy ? (isHeavySnow ? 8 : 3) : 0,
-        snowfall: isSnowy ? (isHeavySnow ? 5 : 2) : 0,
-        wind_speed: 5 + Math.sin((hour / 24) * Math.PI) * 10,
-        trend: hour < 12 ? "up" : "down",
-        forecast_confidence: 0.3,
-        daytime_high: Math.round((tempBase + 3) * 10) / 10,
-        daytime_low: Math.round((tempBase - 5) * 10) / 10,
-        forecast_id: `fallback_${now.toISOString().split("T")[0]}`,
-      };
-
-      return NextResponse.json(fallbackData);
     }
 
     try {
@@ -134,14 +115,30 @@ async function GET(req: NextRequest) {
       const currentWeatherUrl = `${OPENWEATHER_BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
 
       const currentResponse = await fetch(currentWeatherUrl, {
-        signal: AbortSignal.timeout(30000), // 5 second timeout
+        signal: AbortSignal.timeout(10000), // 10 second timeout
         headers: {
           "User-Agent": "SnowRemovalApp/1.0",
         },
       });
 
       if (!currentResponse.ok) {
-        throw new Error(`OpenWeatherMap API error: ${currentResponse.status}`);
+        if (currentResponse.status === 401) {
+          throw new Error(
+            "Weather service authentication failed. Please contact support."
+          );
+        } else if (currentResponse.status === 429) {
+          throw new Error(
+            "Weather service rate limit exceeded. Please try again in a moment."
+          );
+        } else if (currentResponse.status >= 500) {
+          throw new Error(
+            "Weather service is temporarily unavailable. Please try again."
+          );
+        } else {
+          throw new Error(
+            `Weather service error (${currentResponse.status}). Please try again.`
+          );
+        }
       }
 
       const currentData = await currentResponse.json();
@@ -149,7 +146,7 @@ async function GET(req: NextRequest) {
       // Fetch forecast for trend analysis (with timeout)
       const forecastUrl = `${OPENWEATHER_BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
       const forecastResponse = await fetch(forecastUrl, {
-        signal: AbortSignal.timeout(8000), // 8 second timeout
+        signal: AbortSignal.timeout(10000), // 10 second timeout
         headers: {
           "User-Agent": "SnowRemovalApp/1.0",
         },
@@ -241,24 +238,15 @@ async function GET(req: NextRequest) {
     } catch (error) {
       secureError("Error fetching weather data:", error);
 
-      // Return fallback data on API error
-      const now = new Date();
-      const tempBase = -3 + Math.sin((now.getHours() / 24) * Math.PI) * 5;
-
-      const fallbackData: WeatherApiResponse = {
-        temperature: Math.round(tempBase * 10) / 10,
-        conditions: "lightSnow",
-        precipitation: 2,
-        snowfall: 1.5,
-        wind_speed: 8,
-        trend: "steady",
-        forecast_confidence: 0.1,
-        daytime_high: Math.round((tempBase + 2) * 10) / 10,
-        daytime_low: Math.round((tempBase - 4) * 10) / 10,
-        forecast_id: `fallback_error_${now.toISOString().split("T")[0]}`,
-      };
-
-      return NextResponse.json(fallbackData);
+      // Return proper error instead of fallback data
+      return NextResponse.json(
+        {
+          error: "Unable to fetch weather data. Please try again.",
+          code: "WEATHER_FETCH_ERROR",
+          retryable: true,
+        },
+        { status: 503 }
+      );
     }
   } catch (error) {
     secureError("Error in weather API:", error);
