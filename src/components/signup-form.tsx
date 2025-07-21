@@ -166,18 +166,16 @@ export function SignUpForm() {
           </div>
         </div>
 
-        {/* Google OAuth - only show if configured */}
-        {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => handleOAuthSignIn("google")}
-            disabled={isLoading.google}
-          >
-            <GoogleIcon className="mr-2 h-4 w-4" />
-            {isLoading.google ? "Creating account..." : "Continue with Google"}
-          </Button>
-        )}
+        {/* Google OAuth */}
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => handleOAuthSignIn("google")}
+          disabled={isLoading.google}
+        >
+          <GoogleIcon className="mr-2 h-4 w-4" />
+          {isLoading.google ? "Creating account..." : "Continue with Google"}
+        </Button>
       </div>
     </div>
   );

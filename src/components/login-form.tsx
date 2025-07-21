@@ -202,18 +202,16 @@ React.ComponentProps<"form">) {
           </div>
         </div>
 
-        {/* Google OAuth - only show if configured */}
-        {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => handleOAuthSignIn("google")}
-            disabled={isLoading.google}
-          >
-            <GoogleIcon className="mr-2 h-4 w-4" />
-            {isLoading.google ? "Signing in..." : "Continue with Google"}
-          </Button>
-        )}
+        {/* Google OAuth */}
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => handleOAuthSignIn("google")}
+          disabled={isLoading.google}
+        >
+          <GoogleIcon className="mr-2 h-4 w-4" />
+          {isLoading.google ? "Signing in..." : "Continue with Google"}
+        </Button>
       </div>
 
       <div className="text-center text-sm text-muted-foreground">
