@@ -1,6 +1,6 @@
 "use client";
 
-import { IconCreditCard, IconDotsVertical } from "@tabler/icons-react";
+import { IconDotsVertical } from "@tabler/icons-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -18,8 +18,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useSession, signOut } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
-import { LogOut, Settings, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { ThemeMenuItems } from "@/components/theme-toggle";
 import { useCompany } from "@/lib/contexts/company-context";
 
