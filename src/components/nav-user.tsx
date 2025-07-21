@@ -90,8 +90,8 @@ export function NavUser() {
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
+            {/* <DropdownMenuGroup> */}
+            {/* <DropdownMenuItem asChild>
                 <Link
                   href="/profile"
                   className="cursor-pointer flex w-full items-center"
@@ -99,8 +99,8 @@ export function NavUser() {
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </Link>
-              </DropdownMenuItem>
-              {canAccessSettings && (
+              </DropdownMenuItem> */}
+            {/* {canAccessSettings && (
                 <DropdownMenuItem asChild>
                   <Link
                     href="/settings"
@@ -110,8 +110,8 @@ export function NavUser() {
                     <span>Settings</span>
                   </Link>
                 </DropdownMenuItem>
-              )}
-              {canAccessBilling && (
+              )} */}
+            {/* {canAccessBilling && (
                 <DropdownMenuItem asChild>
                   <Link
                     href="/billing"
@@ -121,8 +121,8 @@ export function NavUser() {
                     <span>Billing</span>
                   </Link>
                 </DropdownMenuItem>
-              )}
-            </DropdownMenuGroup>
+              )} */}
+            {/* </DropdownMenuGroup> */}
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <ThemeMenuItems />
