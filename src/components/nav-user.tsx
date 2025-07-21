@@ -51,8 +51,8 @@ export function NavUser() {
     : session.user?.name?.substring(0, 2).toUpperCase() || "U";
 
   // Check if user can see admin/manager features
-  const canAccessSettings = userRole && ["owner", "admin"].includes(userRole);
-  const canAccessBilling = userRole && ["owner", "admin"].includes(userRole);
+  // const canAccessSettings = userRole && ["owner", "admin"].includes(userRole);
+  // const canAccessBilling = userRole && ["owner", "admin"].includes(userRole);
 
   return (
     <SidebarMenu>
