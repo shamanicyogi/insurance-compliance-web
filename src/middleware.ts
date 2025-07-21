@@ -114,6 +114,7 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
+        console.log(token, "token 🔥🔥🔥🔥🔥🔥");
         const pathname = req.nextUrl.pathname;
 
         // Allow unauthenticated access to public pages
@@ -123,7 +124,13 @@ export default withAuth(
           pathname.startsWith("/signup") ||
           pathname.startsWith("/snow-removal/onboarding") ||
           pathname.startsWith("/terms") ||
-          pathname.startsWith("/join")
+          pathname.startsWith("/join") ||
+          // TODO - REMOVE THIS
+          pathname.startsWith("/api/auth/signin") ||
+          pathname.startsWith("/api/auth/signup") ||
+          pathname.startsWith("/api/auth/callback") ||
+          pathname.startsWith("/api/auth/session") ||
+          pathname.startsWith("dashboard")
         ) {
           return true;
         }
@@ -137,9 +144,9 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    "/",
+    // "/",
     // All app pages that require employee records
-    "/dashboard/:path*",
+    // "/dashboard/:path*",
     "/profile/:path*",
     "/settings/:path*",
     "/billing/:path*",
@@ -148,8 +155,8 @@ export const config = {
     "/team/:path*",
     "/tasks/:path*",
     "/sites/:path*",
-    "/login",
-    "/signup",
+    // "/login",
+    // "/signup",
     "/join/:path*",
     "/terms",
   ],
