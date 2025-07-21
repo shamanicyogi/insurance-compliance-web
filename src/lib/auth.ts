@@ -1,4 +1,4 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
+import NextAuth, { NextAuthOptions, User, Session } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import EmailProvider from "next-auth/providers/email";
 import { SupabaseAdapter } from "@auth/supabase-adapter";
@@ -275,8 +275,7 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   callbacks: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async signIn(params: any) {
+    async signIn(params: { user: User }) {
       console.log(params, "params 🔥🔥🔥🔥🔥🔥");
       const { user } = params;
       console.log(user, "user 🔥🔥🔥🔥🔥🔥");
@@ -300,21 +299,24 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      return true;
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async session({ session, user }: any) {
-      if (session?.user) {
-        session.user.id = user.id;
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("email", user.email);
+      console.log(data, "data 🔥🔥🔥🔥🔥🔥");
+      console.log(error, "error 🔥🔥🔥🔥🔥🔥");
+
+      if (error) {
+        console.error("Error checking user:", error);
+        return false;
       }
-      return session;
-    },
-  },
-  events: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async createUser({ user }: any) {
-      console.log("CREATE USER CALLED ✅✅✅✅✅✅");
-      // Create user profile in public.users table when user is created
+
+      if (data.length > 0) {
+        console.log("User already exists");
+        return false;
+      }
+
+      console.log("User does not exist, creating user");
       try {
         const { error } = await supabase.from("users").insert({
           id: user.id,
@@ -332,8 +334,40 @@ export const authOptions: NextAuthOptions = {
       } catch (error) {
         console.error("Error in createUser event:", error);
       }
+
+      return true;
+    },
+    async session({ session, user }: { session: Session; user: User }) {
+      if (session?.user) {
+        session.user.id = user.id;
+      }
+      return session;
     },
   },
+  // events: {
+  //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  //   async createUser({ user }: any) {
+  //     console.log("CREATE USER CALLED ✅✅✅✅✅✅");
+  //     // Create user profile in public.users table when user is created
+  //     try {
+  //       const { error } = await supabase.from("users").insert({
+  //         id: user.id,
+  //         email: user.email!,
+  //         display_name: user.name || user.email!.split("@")[0],
+  //         avatar_url: user.image,
+  //         auth_user_id: user.id,
+  //       });
+
+  //       console.log(error, "error 🔥🔥🔥🔥🔥🔥");
+
+  //       if (error) {
+  //         console.error("Error creating user profile:", error);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error in createUser event:", error);
+  //     }
+  //   },
+  // },
 };
 
 export default NextAuth(authOptions);
