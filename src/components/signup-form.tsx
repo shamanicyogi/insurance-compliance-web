@@ -13,6 +13,8 @@ import { Building2, Shield } from "lucide-react";
 
 type Provider = "google" | "apple" | "strava";
 
+console.log(process.env, "process.env 🔥🔥🔥🔥🔥🔥");
+
 export function SignUpForm() {
   const searchParams = useSearchParams();
 
