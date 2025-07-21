@@ -20,12 +20,12 @@ import { useSession, signOut } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import { LogOut } from "lucide-react";
 import { ThemeMenuItems } from "@/components/theme-toggle";
-import { useCompany } from "@/lib/contexts/company-context";
+// import { useCompany } from "@/lib/contexts/company-context";
 
 export function NavUser() {
   const { data: session } = useSession();
   const { isMobile } = useSidebar();
-  const { userRole } = useCompany();
+  // const { userRole } = useCompany();
 
   // Fetch minimal user data (just display_name and avatar_url)
   const { data: userData } = useQuery({
