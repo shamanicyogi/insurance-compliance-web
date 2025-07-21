@@ -277,7 +277,9 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async signIn(params: any) {
+      console.log(params, "params 🔥🔥🔥🔥🔥🔥");
       const { user } = params;
+      console.log(user, "user 🔥🔥🔥🔥🔥🔥");
       // Block suspicious domains
       const suspiciousDomains = [
         "goodpostman.com",
@@ -311,6 +313,7 @@ export const authOptions: NextAuthOptions = {
   events: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async createUser({ user }: any) {
+      console.log("CREATE USER CALLED ✅✅✅✅✅✅");
       // Create user profile in public.users table when user is created
       try {
         const { error } = await supabase.from("users").insert({
@@ -320,6 +323,8 @@ export const authOptions: NextAuthOptions = {
           avatar_url: user.image,
           auth_user_id: user.id,
         });
+
+        console.log(error, "error 🔥🔥🔥🔥🔥🔥");
 
         if (error) {
           console.error("Error creating user profile:", error);
