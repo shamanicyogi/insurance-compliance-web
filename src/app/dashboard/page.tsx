@@ -591,6 +591,10 @@ export default function DashboardPage() {
   const { user, isLoading } = useAuth();
   const { employee, userRole, loading: companyLoading } = useCompany();
 
+  console.log(employee, "employee 🔥🔥🔥🔥🔥🔥");
+  console.log(userRole, "userRole 🔥🔥🔥🔥🔥🔥");
+  console.log(user, "user 🔥🔥🔥🔥🔥🔥");
+
   // Redirect users without employee records to onboarding
   useEffect(() => {
     if (!isLoading && !companyLoading && user && (!employee || !userRole)) {
