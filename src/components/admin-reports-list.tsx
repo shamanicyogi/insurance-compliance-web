@@ -246,7 +246,7 @@ export function AdminReportsList({
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
             <CardTitle className="flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5" />
               All Reports ({filteredReports.length})
@@ -257,22 +257,26 @@ export function AdminReportsList({
                 size="sm"
                 onClick={loadReports}
                 disabled={loading}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 sm:gap-2"
               >
                 <RefreshCw
-                  className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                  className={`h-3 w-3 sm:h-4 sm:w-4 ${loading ? "animate-spin" : ""}`}
                 />
-                Refresh
+                <span className="hidden sm:inline">Refresh</span>
+                <span className="sm:hidden">↻</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportExcel}
                 disabled={exporting || filteredReports.length === 0}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 sm:gap-2"
               >
-                <FileSpreadsheet className="h-4 w-4" />
-                {exporting ? "Exporting..." : "Export CSV"}
+                <FileSpreadsheet className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">
+                  {exporting ? "Exporting..." : "Export CSV"}
+                </span>
+                <span className="sm:hidden">{exporting ? "..." : "CSV"}</span>
               </Button>
             </div>
           </div>
@@ -305,7 +309,7 @@ export function AdminReportsList({
                   setFilters({ ...filters, site: value === "all" ? "" : value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="All sites" />
                 </SelectTrigger>
                 <SelectContent>
@@ -330,7 +334,7 @@ export function AdminReportsList({
                   })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="All employees" />
                 </SelectTrigger>
                 <SelectContent>
@@ -355,7 +359,7 @@ export function AdminReportsList({
                   })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
@@ -377,7 +381,7 @@ export function AdminReportsList({
                   })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="All methods" />
                 </SelectTrigger>
                 <SelectContent>
@@ -400,6 +404,7 @@ export function AdminReportsList({
                 onChange={(e) =>
                   setFilters({ ...filters, dateFrom: e.target.value })
                 }
+                className="w-full"
               />
             </div>
 
@@ -412,6 +417,7 @@ export function AdminReportsList({
                 onChange={(e) =>
                   setFilters({ ...filters, dateTo: e.target.value })
                 }
+                className="w-full"
               />
             </div>
 
@@ -427,18 +433,18 @@ export function AdminReportsList({
           </div>
 
           {/* Results Table */}
-          <div className="border rounded-lg">
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Site</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Temperature</TableHead>
-                  <TableHead>Start Time</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="min-w-[100px]">Date</TableHead>
+                  <TableHead className="min-w-[120px]">Site</TableHead>
+                  <TableHead className="min-w-[100px]">Employee</TableHead>
+                  <TableHead className="min-w-[80px]">Status</TableHead>
+                  <TableHead className="min-w-[100px]">Method</TableHead>
+                  <TableHead className="min-w-[80px]">Temp</TableHead>
+                  <TableHead className="min-w-[80px]">Time</TableHead>
+                  <TableHead className="min-w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -517,13 +523,13 @@ export function AdminReportsList({
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+              <div className="text-sm text-muted-foreground text-center sm:text-left">
                 Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                 {Math.min(currentPage * itemsPerPage, filteredReports.length)}{" "}
                 of {filteredReports.length} reports
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -532,9 +538,10 @@ export function AdminReportsList({
                   className="flex items-center gap-1"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Previous
+                  <span className="hidden sm:inline">Previous</span>
+                  <span className="sm:hidden">Prev</span>
                 </Button>
-                <span className="text-sm font-medium">
+                <span className="text-sm font-medium whitespace-nowrap">
                   Page {currentPage} of {totalPages}
                 </span>
                 <Button
@@ -544,7 +551,8 @@ export function AdminReportsList({
                   disabled={currentPage === totalPages}
                   className="flex items-center gap-1"
                 >
-                  Next
+                  <span className="hidden sm:inline">Next</span>
+                  <span className="sm:hidden">Next</span>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>

@@ -248,72 +248,80 @@ export default function SnowRemovalPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 p-2 sm:p-0">
         {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
               Snow Removal Reports
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Manage your snow removal compliance reports and track site
               activities.
             </p>
           </div>
-          <Button onClick={handleNewReport} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            New Report
+          <Button
+            onClick={handleNewReport}
+            className="flex items-center gap-2 text-sm"
+          >
+            <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">New Report</span>
+            <span className="sm:hidden">New</span>
           </Button>
         </div>
 
         {/* Quick Stats */}
         {!reportsLoading && (
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Reports
-                </CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{reports.length}</div>
-                <p className="text-xs text-muted-foreground">
+          <div className="grid gap-2 sm:gap-4 grid-cols-3">
+            <Card className="p-3 sm:p-4">
+              <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                  <span className="text-xs sm:text-sm font-medium text-center">
+                    Total
+                  </span>
+                </div>
+                <div className="text-xl sm:text-2xl font-bold">
+                  {reports.length}
+                </div>
+                <p className="text-xs text-muted-foreground text-center hidden sm:block">
                   {reports.filter((r) => !r.is_draft).length} submitted
                 </p>
-              </CardContent>
+              </div>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Draft Reports
-                </CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+            <Card className="p-3 sm:p-4">
+              <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                  <span className="text-xs sm:text-sm font-medium text-center">
+                    Drafts
+                  </span>
+                </div>
+                <div className="text-xl sm:text-2xl font-bold">
                   {reports.filter((r) => r.is_draft).length}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground text-center hidden sm:block">
                   Pending submission
                 </p>
-              </CardContent>
+              </div>
             </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Sites Assigned
-                </CardTitle>
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{sites.length}</div>
-                <p className="text-xs text-muted-foreground">
+            <Card className="p-3 sm:p-4">
+              <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                  <span className="text-xs sm:text-sm font-medium text-center">
+                    Sites
+                  </span>
+                </div>
+                <div className="text-xl sm:text-2xl font-bold">
+                  {sites.length}
+                </div>
+                <p className="text-xs text-muted-foreground text-center hidden sm:block">
                   Active locations
                 </p>
-              </CardContent>
+              </div>
             </Card>
           </div>
         )}
@@ -324,23 +332,47 @@ export default function SnowRemovalPage() {
           onValueChange={setActiveTab}
           className="space-y-4"
         >
-          <TabsList>
-            <TabsTrigger value="reports" className="flex items-center gap-2">
+          <TabsList className="w-full justify-start h-auto p-1">
+            <TabsTrigger
+              value="reports"
+              className="flex items-center gap-2 px-3 py-2"
+            >
               <FileText className="h-4 w-4" />
-              Reports
+              <span className="hidden sm:inline">Reports</span>
+              <span className="sm:hidden">All</span>
             </TabsTrigger>
-            <TabsTrigger value="drafts" className="flex items-center gap-2">
+            <TabsTrigger
+              value="drafts"
+              className="flex items-center gap-2 px-3 py-2"
+            >
               <Clock className="h-4 w-4" />
-              Drafts ({reports.filter((r) => r.is_draft).length})
+              <span className="hidden sm:inline">
+                Drafts ({reports.filter((r) => r.is_draft).length})
+              </span>
+              <span className="sm:hidden">
+                Draft ({reports.filter((r) => r.is_draft).length})
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="create" className="flex items-center gap-2">
+            <TabsTrigger
+              value="create"
+              className="flex items-center gap-2 px-3 py-2"
+            >
               <Plus className="h-4 w-4" />
-              {editingReport ? "Edit Report" : "Create Report"}
+              <span className="hidden sm:inline">
+                {editingReport ? "Edit Report" : "Create Report"}
+              </span>
+              <span className="sm:hidden">
+                {editingReport ? "Edit" : "New"}
+              </span>
             </TabsTrigger>
             {canExportData && (
-              <TabsTrigger value="admin" className="flex items-center gap-2">
+              <TabsTrigger
+                value="admin"
+                className="flex items-center gap-2 px-3 py-2"
+              >
                 <FileText className="h-4 w-4" />
-                Admin Reports
+                <span className="hidden sm:inline">Admin Reports</span>
+                <span className="sm:hidden">Admin</span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -364,13 +396,14 @@ export default function SnowRemovalPage() {
                       type="date"
                       value={dateFilter}
                       onChange={(e) => setDateFilter(e.target.value)}
+                      className="w-full"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="site-filter">Site</Label>
                     <Select value={siteFilter} onValueChange={setSiteFilter}>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="All sites" />
                       </SelectTrigger>
                       <SelectContent>
@@ -390,7 +423,7 @@ export default function SnowRemovalPage() {
                       value={statusFilter}
                       onValueChange={setStatusFilter}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="All statuses" />
                       </SelectTrigger>
                       <SelectContent>
@@ -425,12 +458,12 @@ export default function SnowRemovalPage() {
                 </div>
               ) : filteredReports.length === 0 ? (
                 <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-8">
-                    <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">
+                  <CardContent className="flex flex-col items-center justify-center py-6 sm:py-8 px-4">
+                    <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
+                    <h3 className="text-base sm:text-lg font-semibold mb-2 text-center">
                       No reports found
                     </h3>
-                    <p className="text-muted-foreground text-center mb-4">
+                    <p className="text-sm sm:text-base text-muted-foreground text-center mb-3 sm:mb-4 max-w-md">
                       {reports.length === 0
                         ? "You haven't created any reports yet. Create your first report to get started."
                         : "No reports match your current filters. Try adjusting your search criteria."}
@@ -438,9 +471,9 @@ export default function SnowRemovalPage() {
                     {reports.length === 0 && (
                       <Button
                         onClick={handleNewReport}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 text-sm"
                       >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                         Create First Report
                       </Button>
                     )}
@@ -449,15 +482,19 @@ export default function SnowRemovalPage() {
               ) : (
                 filteredReports.map((report) => (
                   <Card key={report.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            {format(
-                              new Date(report.date),
-                              "EEEE, MMMM d, yyyy"
-                            )}
+                    <CardHeader className="pb-3 sm:pb-6">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0">
+                        <div className="flex-1">
+                          <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-base sm:text-lg">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                              <span className="text-sm sm:text-base">
+                                {format(
+                                  new Date(report.date),
+                                  "EEEE, MMMM d, yyyy"
+                                )}
+                              </span>
+                            </div>
                             <StatusBadge
                               isDraft={report.is_draft}
                               submittedAt={report.submitted_at}
@@ -465,42 +502,50 @@ export default function SnowRemovalPage() {
                           </CardTitle>
                           <CardDescription className="flex items-center gap-2 mt-1">
                             <MapPin className="h-3 w-3" />
-                            {report.sites.name}
+                            <span className="text-sm">{report.sites.name}</span>
                             <PriorityBadge priority={report.sites.priority} />
                           </CardDescription>
                         </div>
-                        <div className="text-right text-sm text-muted-foreground">
+                        <div className="text-xs sm:text-sm text-muted-foreground text-left sm:text-right mt-1 sm:mt-0">
                           {report.start_time} -{" "}
                           {report.finish_time || "In Progress"}
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-4 md:grid-cols-3">
+                    <CardContent className="pt-0">
+                      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
                         <div>
-                          <p className="text-sm font-medium">Method</p>
-                          <p className="text-sm text-muted-foreground capitalize">
+                          <p className="text-xs sm:text-sm font-medium">
+                            Method
+                          </p>
+                          <p className="text-sm sm:text-base text-muted-foreground capitalize">
                             {report.snow_removal_method
                               .replace(/([A-Z])/g, " $1")
                               .trim()}
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium">Salt Used</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm font-medium">
+                            Salt Used
+                          </p>
+                          <p className="text-sm sm:text-base text-muted-foreground">
                             {report.salt_used_kg || 0} kg
                           </p>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">Temperature</p>
-                          <p className="text-sm text-muted-foreground">
+                        <div className="sm:col-span-2 md:col-span-1">
+                          <p className="text-xs sm:text-sm font-medium">
+                            Temperature
+                          </p>
+                          <p className="text-sm sm:text-base text-muted-foreground">
                             {report.air_temperature || "N/A"}°C
                           </p>
                         </div>
                       </div>
                       {report.comments && (
                         <div className="mt-3 pt-3 border-t">
-                          <p className="text-sm font-medium">Comments</p>
+                          <p className="text-xs sm:text-sm font-medium">
+                            Comments
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             {report.comments}
                           </p>

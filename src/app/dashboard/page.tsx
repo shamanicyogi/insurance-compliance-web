@@ -644,10 +644,6 @@ export default function DashboardPage() {
   const { user, isLoading } = useAuth();
   const { employee, userRole, loading: companyLoading } = useCompany();
 
-  console.log(employee, "employee 🔥🔥🔥🔥🔥🔥");
-  console.log(userRole, "userRole 🔥🔥🔥🔥🔥🔥");
-  console.log(user, "user 🔥🔥🔥🔥🔥🔥");
-
   // HACK to redirect user
   useEffect(() => {
     if (!user && !isLoading) {
