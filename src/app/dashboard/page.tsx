@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useCompany } from "@/lib/contexts/company-context";
 import Spinner from "@/components/spinner";
@@ -586,8 +587,16 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, isLoading } = useAuth();
   const { employee, userRole, loading: companyLoading } = useCompany();
+
+  // Redirect users without employee records to onboarding
+  useEffect(() => {
+    if (!isLoading && !companyLoading && user && (!employee || !userRole)) {
+      router.push("/snow-removal/onboarding");
+    }
+  }, [isLoading, companyLoading, user, employee, userRole, router]);
 
   if (isLoading || companyLoading) {
     return (

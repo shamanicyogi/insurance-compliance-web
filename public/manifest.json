@@ -27,14 +27,14 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshots/desktop1.png",
+      "src": "/screenshots/slipcheck_icon_512x512.png",
       "sizes": "1920x1080",
       "type": "image/png",
       "form_factor": "wide",
       "label": "SlipCheck Dashboard - Desktop"
     },
     {
-      "src": "/screenshots/mobile1.png",
+      "src": "/screenshots/slipcheck_icon_512x512.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
