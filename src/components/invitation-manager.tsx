@@ -188,14 +188,14 @@ export function InvitationManager({ companyId }: InvitationManagerProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-3 sm:pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5" />
               Team Invitations
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               Invite new employees to join your company
             </CardDescription>
           </div>
@@ -205,16 +205,19 @@ export function InvitationManager({ companyId }: InvitationManagerProps) {
               size="sm"
               onClick={loadInvitations}
               disabled={loading}
+              className="flex items-center gap-1"
             >
               <RefreshCw
-                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                className={`h-3 w-3 sm:h-4 sm:w-4 ${loading ? "animate-spin" : ""}`}
               />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Invite Employee
+                <Button size="sm" className="flex items-center gap-1 sm:gap-2">
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Invite Employee</span>
+                  <span className="sm:hidden">Invite</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -243,7 +246,7 @@ export function InvitationManager({ companyId }: InvitationManagerProps) {
                         value: "employee" | "manager" | "admin"
                       ) => setRole(value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -274,36 +277,50 @@ export function InvitationManager({ companyId }: InvitationManagerProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {invitations.length === 0 ? (
-          <div className="text-center py-8">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No invitations yet</h3>
-            <p className="text-muted-foreground mb-4">
+          <div className="text-center py-6 sm:py-8">
+            <Users className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-base sm:text-lg font-semibold mb-2">
+              No invitations yet
+            </h3>
+            <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
               Create your first invitation to start building your team
             </p>
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button
+              onClick={() => setShowCreateDialog(true)}
+              className="text-sm"
+            >
+              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Invite First Employee
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {invitations.map((invitation) => (
               <div
                 key={invitation.id}
-                className="flex items-center justify-between p-4 border rounded-lg"
+                className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg"
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{invitation.email}</span>
-                    <Badge variant={getRoleBadgeVariant(invitation.role)}>
-                      {invitation.role}
-                    </Badge>
-                    {getStatusBadge(invitation)}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <Mail className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="font-medium text-sm sm:text-base truncate">
+                        {invitation.email}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Badge
+                        variant={getRoleBadgeVariant(invitation.role)}
+                        className="text-xs"
+                      >
+                        {invitation.role}
+                      </Badge>
+                      {getStatusBadge(invitation)}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       Created{" "}
@@ -316,9 +333,9 @@ export function InvitationManager({ companyId }: InvitationManagerProps) {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-right">
-                    <div className="font-mono text-sm font-medium">
+                <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
+                  <div className="text-left sm:text-right">
+                    <div className="font-mono text-xs sm:text-sm font-medium">
                       {invitation.invitation_code}
                     </div>
                     <div className="text-xs text-muted-foreground">
@@ -331,8 +348,10 @@ export function InvitationManager({ companyId }: InvitationManagerProps) {
                     onClick={() =>
                       copyInvitationCode(invitation.invitation_code)
                     }
+                    className="flex items-center gap-1"
                   >
-                    <Copy className="h-4 w-4" />
+                    <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Copy</span>
                   </Button>
                 </div>
               </div>
