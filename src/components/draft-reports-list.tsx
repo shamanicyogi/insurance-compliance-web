@@ -148,17 +148,22 @@ export function DraftReportsList({
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {[1, 2, 3].map((i) => (
           <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-6 w-2/3" />
-              <Skeleton className="h-4 w-1/2" />
+            <CardHeader className="pb-3">
+              <Skeleton className="h-5 sm:h-6 w-2/3" />
+              <Skeleton className="h-3 sm:h-4 w-1/2" />
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 sm:h-4 w-full" />
+                <Skeleton className="h-3 sm:h-4 w-3/4" />
+                <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                  <Skeleton className="h-8 w-full sm:w-24" />
+                  <Skeleton className="h-8 w-full sm:w-28" />
+                  <Skeleton className="h-8 w-full sm:w-20" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -171,12 +176,14 @@ export function DraftReportsList({
     return (
       <Card>
         <CardContent className="pt-6 text-center">
-          <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Draft Reports</h3>
-          <p className="text-muted-foreground mb-4">
+          <FileText className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
+          <h3 className="text-base sm:text-lg font-semibold mb-2">
+            No Draft Reports
+          </h3>
+          <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
             You don&apos;t have any draft reports at the moment.
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Create a new report and save it as a draft to see it here.
           </p>
         </CardContent>
@@ -185,40 +192,44 @@ export function DraftReportsList({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+        <h3 className="text-base sm:text-lg font-semibold">
           Draft Reports ({draftReports.length})
         </h3>
-        <Badge variant="secondary">
+        <Badge variant="secondary" className="text-xs w-fit">
           {draftReports.length} draft{draftReports.length !== 1 ? "s" : ""}
         </Badge>
       </div>
 
       {draftReports.map((report) => (
         <Card key={report.id} className="hover:shadow-md transition-shadow">
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  {report.sites?.name || "Unknown Site"}
+          <CardHeader className="pb-3 sm:pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0">
+              <div className="space-y-1 flex-1">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                  <span className="text-sm sm:text-base">
+                    {report.sites?.name || "Unknown Site"}
+                  </span>
                 </CardTitle>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {format(new Date(report.date), "MMM d, yyyy")}
+                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>{format(new Date(report.date), "MMM d, yyyy")}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {report.start_time}
-                    {report.finish_time && ` - ${report.finish_time}`}
+                    <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>
+                      {report.start_time}
+                      {report.finish_time && ` - ${report.finish_time}`}
+                    </span>
                   </div>
                 </div>
               </div>
               <Badge
                 variant="outline"
-                className="text-amber-600 border-amber-600"
+                className="text-amber-600 border-amber-600 text-xs w-fit"
               >
                 Draft
               </Badge>
@@ -226,50 +237,64 @@ export function DraftReportsList({
           </CardHeader>
 
           <CardContent className="pt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
               <div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Snow Removal Method
                 </p>
-                <p className="font-medium capitalize">
+                <p className="text-sm sm:text-base font-medium capitalize">
                   {report.snow_removal_method
                     ?.replace(/([A-Z])/g, " $1")
                     .trim()}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Salt Used</p>
-                <p className="font-medium">{report.salt_used_kg || 0} kg</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Salt Used
+                </p>
+                <p className="text-sm sm:text-base font-medium">
+                  {report.salt_used_kg || 0} kg
+                </p>
               </div>
               {report.comments && (
-                <div className="md:col-span-2">
-                  <p className="text-sm text-muted-foreground">Comments</p>
-                  <p className="text-sm bg-muted p-2 rounded">
+                <div className="sm:col-span-2">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">
+                    Comments
+                  </p>
+                  <p className="text-xs sm:text-sm bg-muted p-2 rounded">
                     {report.comments}
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => onEditDraft(report)}
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
               >
-                <Edit className="h-4 w-4" />
-                Edit Draft
+                <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Edit Draft</span>
+                <span className="sm:hidden">Edit</span>
               </Button>
 
               <Button
                 size="sm"
                 onClick={() => handleSubmitDraft(report.id)}
                 disabled={submittingId === report.id}
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
               >
-                <Send className="h-4 w-4" />
-                {submittingId === report.id ? "Submitting..." : "Submit Report"}
+                <Send className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">
+                  {submittingId === report.id
+                    ? "Submitting..."
+                    : "Submit Report"}
+                </span>
+                <span className="sm:hidden">
+                  {submittingId === report.id ? "Submitting..." : "Submit"}
+                </span>
               </Button>
 
               <Button
@@ -282,10 +307,15 @@ export function DraftReportsList({
                     report.sites?.name || "Unknown Site"
                   )
                 }
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
               >
-                <Trash2 className="h-4 w-4" />
-                {deletingId === report.id ? "Deleting..." : "Delete"}
+                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">
+                  {deletingId === report.id ? "Deleting..." : "Delete"}
+                </span>
+                <span className="sm:hidden">
+                  {deletingId === report.id ? "Deleting..." : "Delete"}
+                </span>
               </Button>
             </div>
           </CardContent>
