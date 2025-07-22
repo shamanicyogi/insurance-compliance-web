@@ -133,7 +133,7 @@ function EmployeeDashboard() {
   }, []);
 
   return (
-    <div className="flex-1 space-y-4 p-2 sm:p-4 md:p-8 pt-4 md:pt-6">
+    <div className="flex-1 space-y-3 sm:space-y-4 p-2 sm:p-4 md:p-8 pt-4 md:pt-6">
       <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
@@ -145,75 +145,75 @@ function EmployeeDashboard() {
         </div>
       </div>
 
-      {/* Quick Stats for Employee - Mobile Optimized */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">
-              Today&apos;s Reports
-            </CardTitle>
-            <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+      {/* Quick Stats for Employee - Compact Mobile Layout */}
+      <div className="grid gap-2 sm:gap-4 grid-cols-3 md:grid-cols-3">
+        <Card className="p-3 sm:p-4">
+          <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+              <span className="text-xs sm:text-sm font-medium text-center">
+                Today
+              </span>
+            </div>
             {loading ? (
-              <Skeleton className="h-6 sm:h-8 w-8 sm:w-12" />
+              <Skeleton className="h-6 sm:h-8 w-6 sm:w-8" />
             ) : (
               <div className="text-xl sm:text-2xl font-bold">
                 {stats?.todayReports || 0}
               </div>
             )}
-            <p className="text-xs text-muted-foreground">
-              Reports completed today
+            <p className="text-xs text-muted-foreground text-center hidden sm:block">
+              Reports completed
             </p>
-          </CardContent>
+          </div>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">
-              Assigned Sites
-            </CardTitle>
-            <CloudSnow className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+        <Card className="p-3 sm:p-4">
+          <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              <CloudSnow className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+              <span className="text-xs sm:text-sm font-medium text-center">
+                Sites
+              </span>
+            </div>
             {loading ? (
-              <Skeleton className="h-6 sm:h-8 w-8 sm:w-12" />
+              <Skeleton className="h-6 sm:h-8 w-6 sm:w-8" />
             ) : (
               <div className="text-xl sm:text-2xl font-bold">
                 {stats?.assignedSites || 0}
               </div>
             )}
-            <p className="text-xs text-muted-foreground">
-              Sites under your responsibility
+            <p className="text-xs text-muted-foreground text-center hidden sm:block">
+              Assigned to you
             </p>
-          </CardContent>
+          </div>
         </Card>
 
-        <Card className="sm:col-span-2 md:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">
-              Active Jobs
-            </CardTitle>
-            <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
+        <Card className="p-3 sm:p-4">
+          <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+              <span className="text-xs sm:text-sm font-medium text-center">
+                Active
+              </span>
+            </div>
             {loading ? (
-              <Skeleton className="h-6 sm:h-8 w-8 sm:w-12" />
+              <Skeleton className="h-6 sm:h-8 w-6 sm:w-8" />
             ) : (
               <div className="text-xl sm:text-2xl font-bold">
                 {stats?.activeJobs || 0}
               </div>
             )}
-            <p className="text-xs text-muted-foreground">
-              Jobs currently in progress
+            <p className="text-xs text-muted-foreground text-center hidden sm:block">
+              Jobs in progress
             </p>
-          </CardContent>
+          </div>
         </Card>
       </div>
 
-      {/* Job Site Form - Mobile Optimized */}
-      <Card>
-        <CardHeader className="pb-4">
+      {/* Job Site Form - More Prominent on Mobile */}
+      <Card className="mt-4">
+        <CardHeader className="pb-3 sm:pb-4">
           <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <CloudSnow className="h-4 w-4 sm:h-5 sm:w-5" />
             Job Site Completion Form
