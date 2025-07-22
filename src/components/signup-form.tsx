@@ -182,3 +182,16 @@ export function SignUpForm() {
     </div>
   );
 }
+
+// const ratelimit = new Ratelimit({
+//   redis: Redis.fromEnv(),
+//   limiter: Ratelimit.slidingWindow(5, "10 m"), // 5 attempts per 10 minutes
+// });
+
+//     if (pathname.startsWith("/api/auth/signin")) {
+//       const ip = req.ip ?? "127.0.0.1";
+//       const { success } = await ratelimit.limit(ip);
+//       if (!success) {
+//         return new NextResponse("Too Many Requests", { status: 429 });
+//       }
+//     }
