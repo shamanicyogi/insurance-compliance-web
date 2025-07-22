@@ -51,7 +51,8 @@ export default withAuth(
       pathname.startsWith("/signup") ||
       pathname.startsWith("/snow-removal/onboarding") ||
       pathname.startsWith("/terms") ||
-      pathname.startsWith("/api/auth");
+      pathname.startsWith("/api/auth") ||
+      pathname.startsWith("/api/snow-removal/companies/create");
 
     // MAYBE TOKEN DEOSN"T HAVE!
     console.log(token, "token");

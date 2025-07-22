@@ -221,6 +221,17 @@ export const authOptions: NextAuthOptions = {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   }),
+
+  // 🔑 ADD THIS: Required for middleware to access tokens
+  session: {
+    strategy: "jwt",
+  },
+
+  // 🔑 ADD THIS: JWT configuration for middleware
+  jwt: {
+    secret: process.env.NEXTAUTH_SECRET,
+  },
+
   providers: [
     // 🔐 Google OAuth Provider
     GoogleProvider({
@@ -275,6 +286,14 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   callbacks: {
+    // 🔑 ADD THIS: JWT callback to include user ID in token
+    async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id;
+      }
+      return token;
+    },
+
     async signIn(params: { user: User }) {
       console.log(params, "params 🔥🔥🔥🔥🔥🔥");
       const { user } = params;
@@ -337,9 +356,10 @@ export const authOptions: NextAuthOptions = {
 
       return true;
     },
-    async session({ session, user }: { session: Session; user: User }) {
-      if (session?.user) {
-        session.user.id = user.id;
+    async session({ session, token }) {
+      // 🔑 MODIFY THIS: Get user ID from token instead of user parameter
+      if (session?.user && token?.sub) {
+        session.user.id = token.sub;
       }
       return session;
     },
