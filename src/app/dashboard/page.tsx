@@ -596,12 +596,13 @@ export default function DashboardPage() {
   console.log(user, "user 🔥🔥🔥🔥🔥🔥");
 
   // Redirect users without employee records to onboarding
-  useEffect(() => {
-    if (!isLoading && !companyLoading && user && (!employee || !userRole)) {
-      // router.push("/snow-removal/onboarding");
-      console.log("No employee or user role");
-    }
-  }, [isLoading, companyLoading, user, employee, userRole, router]);
+  // useEffect(() => {
+  //   if (!isLoading && !companyLoading && user && (!employee || !userRole)) {
+  //     console.log("No employee or user role");
+
+  //     router.push("/snow-removal/onboarding");
+  //   }
+  // }, [isLoading, companyLoading, user, employee, userRole, router]);
 
   useEffect(() => {
     if (!user && !isLoading) {
