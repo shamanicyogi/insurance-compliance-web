@@ -312,8 +312,8 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (data.length > 0) {
-        console.log("User already exists");
-        return false;
+        console.log("User already exists - allowing signin");
+        return true;
       }
 
       console.log("User does not exist, creating user");
