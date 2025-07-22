@@ -40,7 +40,9 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
-    console.log(`🛣️ Middleware: ${pathname}, User: ${token?.sub || "none"}`);
+    console.log(
+      `🛣️ Middleware: ${pathname}, Token: ${token}, User: ${token?.sub || "none"}`
+    );
 
     // Skip employee check for these routes
     const skipEmployeeCheck =
