@@ -40,9 +40,15 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
-    console.log(
-      `🛣️ Middleware: ${pathname}, Token: ${token}, User: ${token?.sub || "none"}`
-    );
+    console.log(`🛣️ Middleware: ${pathname}`);
+    console.log(`🔑 Token exists: ${!!token}`);
+    console.log(`👤 User ID: ${token?.sub || "none"}`);
+
+    // If no token, let NextAuth's authorized callback handle it
+    if (!token) {
+      console.log("❌ No token - letting NextAuth handle redirect");
+      return NextResponse.next();
+    }
 
     // Skip employee check for these routes
     const skipEmployeeCheck =
@@ -56,6 +62,12 @@ export default withAuth(
 
     // MAYBE TOKEN DEOSN"T HAVE!
     console.log(token, "token");
+
+    // TODO - block onboarding - if they have an employee record, redirect to dashboard
+
+    // TODO - handle dashboard -> login redirect HERE
+
+    // TODO - imeplemnt reference code
 
     // 🎯 MAIN LOGIC: If user is authenticated and on a protected route, check employee record
     if (token?.sub && !skipEmployeeCheck) {
@@ -100,3 +112,26 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|public/).*)",
   ],
 };
+
+// PUBLIC ROUTE ATTEMPT (unsuccessful):
+// // Define public routes that don't require authentication
+// const publicRoutes = ["/", "/login", "/signup", "/terms", "/api/auth"];
+
+// const isPublicRoute = publicRoutes.some((route) =>
+//   pathname.split("/")[1].startsWith(route)
+// );
+
+// console.log(pathname, "pathname ");
+// console.log(isPublicRoute, "isPublicRoute");
+
+// // 🔐 If no token and trying to access protected route, redirect to login
+// if (!token && !isPublicRoute) {
+//   console.log("❌ No token for protected route - redirecting to login");
+//   return NextResponse.redirect(new URL("/login", req.url));
+// }
+
+// // If no token but on public route, allow access
+// if (!token) {
+//   console.log("✅ No token but public route - allowing access");
+//   return NextResponse.next();
+// }

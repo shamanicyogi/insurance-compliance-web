@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useCompany } from "@/lib/contexts/company-context";
 import Spinner from "@/components/spinner";
@@ -38,6 +37,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { useRouter } from "next/navigation";
 
 interface DashboardStats {
   todayReports: number;
@@ -595,15 +595,7 @@ export default function DashboardPage() {
   console.log(userRole, "userRole 🔥🔥🔥🔥🔥🔥");
   console.log(user, "user 🔥🔥🔥🔥🔥🔥");
 
-  // Redirect users without employee records to onboarding
-  // useEffect(() => {
-  //   if (!isLoading && !companyLoading && user && (!employee || !userRole)) {
-  //     console.log("No employee or user role");
-
-  //     router.push("/snow-removal/onboarding");
-  //   }
-  // }, [isLoading, companyLoading, user, employee, userRole, router]);
-
+  // HACK to redirect user
   useEffect(() => {
     if (!user && !isLoading) {
       router.push("/login");
@@ -621,7 +613,7 @@ export default function DashboardPage() {
   if (!employee || !userRole) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <Card className="max-w-md">
+        <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>No Company Access</CardTitle>
             <CardDescription>
