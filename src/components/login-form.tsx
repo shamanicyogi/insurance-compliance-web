@@ -71,10 +71,14 @@ React.ComponentProps<"form">) {
   const handleOAuthSignIn = async (provider: Provider) => {
     try {
       setIsLoading((prev) => ({ ...prev, [provider]: true }));
+
+      // If there's an invitation, redirect directly to onboarding with params
+      const callbackUrl = invitationCode
+        ? `/snow-removal/onboarding?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}${prefilledEmail ? `&email=${encodeURIComponent(prefilledEmail)}` : ""}`
+        : "/dashboard";
+
       const result = await signIn(provider, {
-        callbackUrl: invitationCode
-          ? `/login?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}`
-          : "/dashboard",
+        callbackUrl,
         redirect: false,
         prompt: "select_account",
       });
@@ -102,11 +106,15 @@ React.ComponentProps<"form">) {
 
     try {
       setIsLoading((prev) => ({ ...prev, email: true }));
+
+      // If there's an invitation, redirect directly to onboarding with params
+      const callbackUrl = invitationCode
+        ? `/snow-removal/onboarding?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}${email ? `&email=${encodeURIComponent(email)}` : ""}`
+        : "/dashboard";
+
       const result = await signIn("email", {
         email,
-        callbackUrl: invitationCode
-          ? `/login?invitation=${invitationCode}${companyName ? `&company=${encodeURIComponent(companyName)}` : ""}${inviterName ? `&inviter=${encodeURIComponent(inviterName)}` : ""}`
-          : "/dashboard",
+        callbackUrl,
         redirect: false,
       });
 
