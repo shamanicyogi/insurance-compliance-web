@@ -6,7 +6,7 @@ import {
   IconSnowflake,
   IconUsers,
   IconMapPin,
-  IconSettings,
+  // IconSettings,
 } from "@tabler/icons-react";
 import { NavMain } from "@/components/nav-main";
 import {
@@ -50,12 +50,12 @@ const allNavItems = [
     icon: IconMapPin,
     roles: ["owner", "admin", "manager"], // Only managers and above
   },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: IconSettings,
-    roles: ["owner", "admin"], // Only admins and owners
-  },
+  // {
+  //   title: "Settings",
+  //   url: "/settings",
+  //   icon: IconSettings,
+  //   roles: ["owner", "admin"], // Only admins and owners
+  // },
 ];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
