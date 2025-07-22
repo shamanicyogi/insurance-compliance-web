@@ -154,6 +154,14 @@ export function SnowRemovalForm({
     longitude: number;
   } | null>(null);
 
+  // Manual weather input state (used when auto-fetch fails)
+  const [manualWeather, setManualWeather] = useState({
+    temperature: "",
+    snowfall: "",
+    conditions: "clear" as WeatherCondition,
+    trend: "steady" as WeatherTrend,
+  });
+
   const form = useForm<FormData>({
     resolver: zodResolver(snowRemovalSchema),
     defaultValues: existingReport
@@ -255,6 +263,45 @@ export function SnowRemovalForm({
       );
     }
   }, []);
+
+  // Auto-calculate salt usage when manual weather data changes
+  useEffect(() => {
+    if (!weatherData && manualWeather.temperature !== "") {
+      const selectedSite = sites.find((site) => site.id === selectedSiteId);
+      if (selectedSite) {
+        const baseRate = 0.1; // kg per sq ft base rate
+        const siteSize = selectedSite.size_sqft || 10000; // Default to 10k sq ft if not set
+
+        // Temperature factor: colder = more salt needed
+        const tempFactor =
+          parseFloat(manualWeather.temperature) < -10
+            ? 1.4
+            : parseFloat(manualWeather.temperature) < -5
+              ? 1.2
+              : parseFloat(manualWeather.temperature) < 0
+                ? 1.1
+                : 1.0;
+
+        // Condition factor: more salt for snow/ice conditions
+        const conditionFactor = manualWeather.conditions.includes("Snow")
+          ? 1.3
+          : manualWeather.conditions === "freezingRain"
+            ? 1.4
+            : manualWeather.conditions === "sleet"
+              ? 1.2
+              : 1.0;
+
+        // Snowfall factor: more snow = more salt
+        const snowfallFactor = 1 + parseFloat(manualWeather.snowfall) / 10; // 10cm = double the salt
+
+        const saltRecommendation =
+          baseRate * siteSize * tempFactor * conditionFactor * snowfallFactor;
+
+        // Update the form with the calculated recommendation
+        setValue("salt_used_kg", Math.round(saltRecommendation * 10) / 10);
+      }
+    }
+  }, [manualWeather, sites, selectedSiteId, weatherData, setValue]);
 
   // Auto-fill weather data when site changes
   useEffect(() => {
@@ -412,9 +459,9 @@ export function SnowRemovalForm({
       dispatched_for: new Date().toTimeString().slice(0, 5),
       start_time: new Date().toTimeString().slice(0, 5),
       is_draft: true,
-      salt_used_kg: 0,
-      deicing_material_kg: 0,
-      salt_alternative_kg: 0,
+      salt_used_kg: undefined,
+      deicing_material_kg: undefined,
+      salt_alternative_kg: undefined,
       truck: "",
       tractor: "",
       handwork: "",
@@ -430,11 +477,36 @@ export function SnowRemovalForm({
     setCalculations(null);
     setGpsLocation(null);
     setWeatherError(null);
+    setWeatherLoading(false);
+
+    // Reset manual weather state
+    setManualWeather({
+      temperature: "",
+      snowfall: "",
+      conditions: "clear",
+      trend: "steady",
+    });
+
+    // Force form to re-render with cleared values
+    setTimeout(() => {
+      form.trigger();
+    }, 0);
   };
 
   const onFormSubmit = async (data: FormData) => {
     setLoading(true);
     try {
+      // Use weatherData if available, otherwise use manualWeather
+      const weatherToUse = weatherData || {
+        temperature: parseFloat(manualWeather.temperature) || 0,
+        snowfall: parseFloat(manualWeather.snowfall) || 0,
+        conditions: manualWeather.conditions,
+        trend: manualWeather.trend,
+        daytime_high: parseFloat(manualWeather.temperature) || 0, // Use same temp as fallback
+        daytime_low: parseFloat(manualWeather.temperature) || 0, // Use same temp as fallback
+        forecast_confidence: 0.5, // Default confidence for manual data
+      };
+
       const reportData: CreateReportRequest = {
         ...data,
         // GPS coordinates as separate fields (matching database schema)
@@ -442,16 +514,14 @@ export function SnowRemovalForm({
         gps_longitude: gpsLocation?.longitude,
         gps_accuracy: gpsLocation ? 10 : undefined, // 10 meters accuracy
         // Include current weather data from form to ensure consistency
-        air_temperature: weatherData?.temperature || 0,
-        snowfall_accumulation_cm: weatherData?.snowfall || 0,
-        precipitation_type:
-          weatherData?.conditions || ("clear" as WeatherCondition),
-        temperature_trend: weatherData?.trend || ("steady" as WeatherTrend),
-        conditions_upon_arrival:
-          weatherData?.conditions || ("clear" as WeatherCondition),
+        air_temperature: weatherToUse.temperature,
+        snowfall_accumulation_cm: weatherToUse.snowfall,
+        precipitation_type: weatherToUse.conditions,
+        temperature_trend: weatherToUse.trend,
+        conditions_upon_arrival: weatherToUse.conditions,
         // Enhanced forecast data
-        daytime_high: weatherData?.daytime_high || 0,
-        daytime_low: weatherData?.daytime_low || 0,
+        daytime_high: weatherToUse.daytime_high || weatherToUse.temperature,
+        daytime_low: weatherToUse.daytime_low || weatherToUse.temperature,
         weather_forecast_id: weatherData?.forecast_id || undefined,
         // Auto-filled fields
         operator: "",
@@ -460,32 +530,42 @@ export function SnowRemovalForm({
         deicing_material_kg: data.deicing_material_kg || 0,
         salt_alternative_kg: data.salt_alternative_kg || 0,
         // Include weather data for storage
-        weather_data: weatherData
-          ? {
-              api_source: "secure_endpoint",
-              temperature: weatherData.temperature,
-              precipitation: 0,
-              wind_speed: 0,
-              conditions: weatherData.conditions,
-              forecast_confidence: weatherData.forecast_confidence,
-            }
-          : undefined,
+        weather_data: {
+          api_source: weatherData ? "secure_endpoint" : "manual_input",
+          temperature: weatherToUse.temperature,
+          precipitation: 0,
+          wind_speed: 0,
+          conditions: weatherToUse.conditions,
+          forecast_confidence: weatherToUse.forecast_confidence || 0.5,
+        },
         // Include calculations
-        calculations: calculations
-          ? {
-              ...calculations,
-              cost_per_kg: 0.5, // Default cost per kg
-            }
-          : undefined,
+        calculations: {
+          salt_recommendation_kg:
+            calculations?.salt_recommendation_kg ||
+            Math.max(10, weatherToUse.temperature < 0 ? 20 : 10),
+          material_cost_estimate:
+            calculations?.material_cost_estimate ||
+            Math.max(5, weatherToUse.temperature < 0 ? 10 : 5),
+          temperature_factor:
+            calculations?.temperature_factor ||
+            (weatherToUse.temperature < 0 ? 1.2 : 1.0),
+          condition_factor:
+            calculations?.condition_factor ||
+            (weatherToUse.conditions.includes("Snow") ? 1.3 : 1.0),
+          cost_per_kg: 0.5,
+        },
       };
 
       if (onSubmit) {
         try {
           await onSubmit(reportData);
-          // Only clear form if no existing report (new report mode)
-          if (!existingReport) {
-            resetFormState();
-          }
+          // Always clear form after successful submission via callback
+          resetFormState();
+          toast.success(
+            data.is_draft
+              ? "Report saved as draft"
+              : "Report submitted successfully"
+          );
         } catch (error) {
           console.error("Error in onSubmit callback:", error);
           toast.error("Failed to save report");
@@ -504,6 +584,7 @@ export function SnowRemovalForm({
               ? "Report saved as draft"
               : "Report submitted successfully"
           );
+          // Clear form after successful API submission
           resetFormState();
         } else {
           const error = await response.json();
@@ -668,7 +749,7 @@ export function SnowRemovalForm({
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger
-                        className={errors.site_id ? "border-red-500" : ""}
+                        className={`w-full ${errors.site_id ? "border-red-500" : ""}`}
                       >
                         <SelectValue placeholder="Select a site" />
                       </SelectTrigger>
@@ -773,31 +854,118 @@ export function SnowRemovalForm({
             <CardTitle className="flex items-center gap-2">
               <Thermometer className="h-4 w-4" />
               Weather Conditions
-              <Badge variant="destructive">Error</Badge>
+              <Badge variant="outline">Manual Input</Badge>
             </CardTitle>
+            <CardDescription>
+              Auto-fetch failed. Please enter weather data manually.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <div className="text-muted-foreground">
-              <p className="mb-2">Failed to load weather data</p>
-              <p className="text-sm">{weatherError}</p>
+          <CardContent className="space-y-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {weatherError} - Using manual input mode.
+              </AlertDescription>
+            </Alert>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="manual-temperature">Temperature (°C) *</Label>
+                <Input
+                  id="manual-temperature"
+                  type="number"
+                  step="0.1"
+                  value={manualWeather.temperature}
+                  onChange={(e) =>
+                    setManualWeather((prev) => ({
+                      ...prev,
+                      temperature: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g., -5.5"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="manual-snowfall">Snowfall (cm)</Label>
+                <Input
+                  id="manual-snowfall"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={manualWeather.snowfall}
+                  onChange={(e) =>
+                    setManualWeather((prev) => ({
+                      ...prev,
+                      snowfall: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g., 2.5"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="manual-conditions">Weather Conditions *</Label>
+                <Select
+                  value={manualWeather.conditions}
+                  onValueChange={(value: WeatherCondition) =>
+                    setManualWeather((prev) => ({ ...prev, conditions: value }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="clear">Clear</SelectItem>
+                    <SelectItem value="rain">Rain</SelectItem>
+                    <SelectItem value="lightSnow">Light Snow</SelectItem>
+                    <SelectItem value="heavySnow">Heavy Snow</SelectItem>
+                    <SelectItem value="driftingSnow">Drifting Snow</SelectItem>
+                    <SelectItem value="freezingRain">Freezing Rain</SelectItem>
+                    <SelectItem value="sleet">Sleet</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="manual-trend">Temperature Trend</Label>
+                <Select
+                  value={manualWeather.trend}
+                  onValueChange={(value: WeatherTrend) =>
+                    setManualWeather((prev) => ({ ...prev, trend: value }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="up">Up</SelectItem>
+                    <SelectItem value="down">Down</SelectItem>
+                    <SelectItem value="steady">Steady</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                const selectedSite = sites.find(
-                  (site) => site.id === selectedSiteId
-                );
-                if (selectedSite?.latitude && selectedSite?.longitude) {
-                  setWeatherError(null);
-                  // Trigger the weather fetch by calling the useEffect dependency
-                  setValue("site_id", selectedSiteId);
-                }
-              }}
-              className="mx-auto"
-            >
-              Retry Weather Fetch
-            </Button>
+
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  const selectedSite = sites.find(
+                    (site) => site.id === selectedSiteId
+                  );
+                  if (selectedSite?.latitude && selectedSite?.longitude) {
+                    setWeatherError(null);
+                    // Trigger the weather fetch by calling the useEffect dependency
+                    setValue("site_id", selectedSiteId);
+                  }
+                }}
+                className="text-sm"
+              >
+                Retry Auto-Fetch
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : weatherData ? (
@@ -835,22 +1003,103 @@ export function SnowRemovalForm({
                 </p>
               </div>
             </div>
-            {/* <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">
-                  Forecast Confidence
-                </p>
-                <p className="text-lg font-semibold">
-                  {Math.round(weatherData.forecast_confidence * 100)}%
-                </p>
+          </CardContent>
+        </Card>
+      ) : selectedSiteId ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Thermometer className="h-4 w-4" />
+              Weather Conditions
+              <Badge variant="outline">Manual Input</Badge>
+            </CardTitle>
+            <CardDescription>
+              Enter weather conditions for this report.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="manual-temperature-fallback">
+                  Temperature (°C) *
+                </Label>
+                <Input
+                  id="manual-temperature-fallback"
+                  type="number"
+                  step="0.1"
+                  value={manualWeather.temperature}
+                  onChange={(e) =>
+                    setManualWeather((prev) => ({
+                      ...prev,
+                      temperature: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g., -5.5"
+                />
               </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Data Source</p>
-                <Badge variant="outline" className="text-xs">
-                  Real-time API
-                </Badge>
+
+              <div className="space-y-2">
+                <Label htmlFor="manual-snowfall-fallback">Snowfall (cm)</Label>
+                <Input
+                  id="manual-snowfall-fallback"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={manualWeather.snowfall}
+                  onChange={(e) =>
+                    setManualWeather((prev) => ({
+                      ...prev,
+                      snowfall: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g., 2.5"
+                />
               </div>
-            </div> */}
+
+              <div className="space-y-2">
+                <Label htmlFor="manual-conditions-fallback">
+                  Weather Conditions *
+                </Label>
+                <Select
+                  value={manualWeather.conditions}
+                  onValueChange={(value: WeatherCondition) =>
+                    setManualWeather((prev) => ({ ...prev, conditions: value }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="clear">Clear</SelectItem>
+                    <SelectItem value="rain">Rain</SelectItem>
+                    <SelectItem value="lightSnow">Light Snow</SelectItem>
+                    <SelectItem value="heavySnow">Heavy Snow</SelectItem>
+                    <SelectItem value="driftingSnow">Drifting Snow</SelectItem>
+                    <SelectItem value="freezingRain">Freezing Rain</SelectItem>
+                    <SelectItem value="sleet">Sleet</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="manual-trend-fallback">Temperature Trend</Label>
+                <Select
+                  value={manualWeather.trend}
+                  onValueChange={(value: WeatherTrend) =>
+                    setManualWeather((prev) => ({ ...prev, trend: value }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="up">Up</SelectItem>
+                    <SelectItem value="down">Down</SelectItem>
+                    <SelectItem value="steady">Steady</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardContent>
         </Card>
       ) : null}
@@ -870,9 +1119,9 @@ export function SnowRemovalForm({
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger
-                      className={
+                      className={`w-full ${
                         errors.snow_removal_method ? "border-red-500" : ""
-                      }
+                      }`}
                     >
                       <SelectValue placeholder="Select method" />
                     </SelectTrigger>
@@ -901,7 +1150,7 @@ export function SnowRemovalForm({
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger
-                      className={errors.follow_up_plans ? "border-red-500" : ""}
+                      className={`w-full ${errors.follow_up_plans ? "border-red-500" : ""}`}
                     >
                       <SelectValue placeholder="Select follow-up plan" />
                     </SelectTrigger>
@@ -991,7 +1240,9 @@ export function SnowRemovalForm({
                         }
                         onChange={(e) =>
                           onChange(
-                            e.target.value ? parseFloat(e.target.value) : 0
+                            e.target.value
+                              ? parseFloat(e.target.value)
+                              : undefined
                           )
                         }
                         id="salt_used_kg"
@@ -1020,7 +1271,9 @@ export function SnowRemovalForm({
                         }
                         onChange={(e) =>
                           onChange(
-                            e.target.value ? parseFloat(e.target.value) : 0
+                            e.target.value
+                              ? parseFloat(e.target.value)
+                              : undefined
                           )
                         }
                         id="deicing_material_kg"
@@ -1049,7 +1302,9 @@ export function SnowRemovalForm({
                         }
                         onChange={(e) =>
                           onChange(
-                            e.target.value ? parseFloat(e.target.value) : 0
+                            e.target.value
+                              ? parseFloat(e.target.value)
+                              : undefined
                           )
                         }
                         id="salt_alternative_kg"
