@@ -598,16 +598,18 @@ export default function DashboardPage() {
     }
   }, [isLoading, companyLoading, user, employee, userRole, router]);
 
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user, router]);
+
   if (isLoading || companyLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Spinner />
       </div>
     );
-  }
-
-  if (!user) {
-    return <div>Please log in to view your dashboard</div>;
   }
 
   if (!employee || !userRole) {
