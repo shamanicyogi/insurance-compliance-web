@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useCompany } from "@/lib/contexts/company-context";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,7 @@ interface JoinCompanyData {
 export function SnowRemovalOnboarding() {
   const { data: session } = useSession();
   const router = useRouter();
+  const { refreshCompanyData } = useCompany();
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -115,6 +117,10 @@ export function SnowRemovalOnboarding() {
       }
 
       toast.success("Company created successfully! You are now the owner.");
+
+      // 🔄 REFRESH COMPANY DATA BEFORE NAVIGATION
+      await refreshCompanyData();
+
       router.push("/dashboard");
     } catch (error) {
       console.error("Error creating company:", error);
@@ -149,6 +155,10 @@ export function SnowRemovalOnboarding() {
       }
 
       toast.success(`Successfully joined ${result.companyName}!`);
+
+      // 🔄 REFRESH COMPANY DATA BEFORE NAVIGATION
+      await refreshCompanyData();
+
       router.push("/dashboard");
     } catch (error) {
       console.error("Error joining company:", error);
