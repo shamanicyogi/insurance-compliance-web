@@ -1,4 +1,4 @@
-import NextAuth, { NextAuthOptions, User, Session } from "next-auth";
+import NextAuth, { NextAuthOptions, User } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import EmailProvider from "next-auth/providers/email";
 import { SupabaseAdapter } from "@auth/supabase-adapter";
