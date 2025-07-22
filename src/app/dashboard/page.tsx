@@ -133,32 +133,32 @@ function EmployeeDashboard() {
   }, []);
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
+    <div className="flex-1 space-y-4 p-2 sm:p-4 md:p-8 pt-4 md:pt-6">
+      <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Snow Removal Job Site
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Complete your daily snow removal compliance report
           </p>
         </div>
       </div>
 
-      {/* Quick Stats for Employee */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Quick Stats for Employee - Mobile Optimized */}
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-xs sm:text-sm font-medium">
               Today&apos;s Reports
             </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Skeleton className="h-8 w-12" />
+              <Skeleton className="h-6 sm:h-8 w-8 sm:w-12" />
             ) : (
-              <div className="text-2xl font-bold">
+              <div className="text-xl sm:text-2xl font-bold">
                 {stats?.todayReports || 0}
               </div>
             )}
@@ -170,16 +170,16 @@ function EmployeeDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-xs sm:text-sm font-medium">
               Assigned Sites
             </CardTitle>
-            <CloudSnow className="h-4 w-4 text-muted-foreground" />
+            <CloudSnow className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Skeleton className="h-8 w-12" />
+              <Skeleton className="h-6 sm:h-8 w-8 sm:w-12" />
             ) : (
-              <div className="text-2xl font-bold">
+              <div className="text-xl sm:text-2xl font-bold">
                 {stats?.assignedSites || 0}
               </div>
             )}
@@ -189,16 +189,20 @@ function EmployeeDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="sm:col-span-2 md:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">
+              Active Jobs
+            </CardTitle>
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Skeleton className="h-8 w-12" />
+              <Skeleton className="h-6 sm:h-8 w-8 sm:w-12" />
             ) : (
-              <div className="text-2xl font-bold">{stats?.activeJobs || 0}</div>
+              <div className="text-xl sm:text-2xl font-bold">
+                {stats?.activeJobs || 0}
+              </div>
             )}
             <p className="text-xs text-muted-foreground">
               Jobs currently in progress
@@ -207,19 +211,19 @@ function EmployeeDashboard() {
         </Card>
       </div>
 
-      {/* Job Site Form */}
+      {/* Job Site Form - Mobile Optimized */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CloudSnow className="h-5 w-5" />
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <CloudSnow className="h-4 w-4 sm:h-5 sm:w-5" />
             Job Site Completion Form
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Fill out the details of your snow removal activities. Weather data
             and material calculations are automated.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           <SnowRemovalForm />
         </CardContent>
       </Card>
@@ -340,116 +344,142 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
   }, [employee?.company_id]);
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">
+    <div className="flex-1 space-y-4 p-2 sm:p-4 md:p-8 pt-4 md:pt-6">
+      <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
           {userRole === "owner" ? "Company" : "Management"} Dashboard
         </h2>
         <div className="flex items-center space-x-2">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add New Site
+          <Button className="text-sm">
+            <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Add New Site</span>
+            <span className="sm:hidden">Add Site</span>
           </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Stats Cards - Mobile Optimized */}
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Employees
+            <CardTitle className="text-xs sm:text-sm font-medium">
+              <span className="hidden sm:inline">Total Employees</span>
+              <span className="sm:hidden">Employees</span>
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Skeleton className="h-8 w-12" />
+              <Skeleton className="h-6 sm:h-8 w-8 sm:w-12" />
             ) : (
-              <div className="text-2xl font-bold">
+              <div className="text-xl sm:text-2xl font-bold">
                 {stats?.totalEmployees || 0}
               </div>
             )}
-            <p className="text-xs text-muted-foreground">Active team members</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Sites</CardTitle>
-            <CloudSnow className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-12" />
-            ) : (
-              <div className="text-2xl font-bold">
-                {stats?.activeSites || 0}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground">Sites being managed</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Today&apos;s Reports
-            </CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-12" />
-            ) : (
-              <div className="text-2xl font-bold">
-                {stats?.todayReports || 0}
-              </div>
-            )}
             <p className="text-xs text-muted-foreground">
-              Reports submitted today
+              <span className="hidden sm:inline">Active team members</span>
+              <span className="sm:hidden">Active</span>
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Completion Rate
+            <CardTitle className="text-xs sm:text-sm font-medium">
+              <span className="hidden sm:inline">Active Sites</span>
+              <span className="sm:hidden">Sites</span>
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CloudSnow className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Skeleton className="h-8 w-16" />
+              <Skeleton className="h-6 sm:h-8 w-8 sm:w-12" />
             ) : (
-              <div className="text-2xl font-bold">
+              <div className="text-xl sm:text-2xl font-bold">
+                {stats?.activeSites || 0}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              <span className="hidden sm:inline">Sites being managed</span>
+              <span className="sm:hidden">Managed</span>
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">
+              <span className="hidden sm:inline">Today&apos;s Reports</span>
+              <span className="sm:hidden">Reports</span>
+            </CardTitle>
+            <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-6 sm:h-8 w-8 sm:w-12" />
+            ) : (
+              <div className="text-xl sm:text-2xl font-bold">
+                {stats?.todayReports || 0}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              <span className="hidden sm:inline">Reports submitted today</span>
+              <span className="sm:hidden">Today</span>
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">
+              <span className="hidden sm:inline">Completion Rate</span>
+              <span className="sm:hidden">Rate</span>
+            </CardTitle>
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-6 sm:h-8 w-12 sm:w-16" />
+            ) : (
+              <div className="text-xl sm:text-2xl font-bold">
                 {stats?.completionRate || 0}%
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              Reports completion rate
+              <span className="hidden sm:inline">Reports completion rate</span>
+              <span className="sm:hidden">Complete</span>
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+      {/* Charts Section - Mobile Optimized */}
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-7 lg:gap-4">
+        <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle>Reports & Sites Overview</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg sm:text-xl">
+              Reports & Sites Overview
+            </CardTitle>
+            <CardDescription className="text-sm">
               Snow removal activity over the last 6 months
             </CardDescription>
           </CardHeader>
-          <CardContent className="pl-2">
-            <ResponsiveContainer width="100%" height={350}>
+          <CardContent className="pl-0 sm:pl-2">
+            <ResponsiveContainer
+              width="100%"
+              height={280}
+              className="sm:h-[350px]"
+            >
               <AreaChart data={analyticsData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
+                <XAxis dataKey="name" fontSize={12} className="sm:text-sm" />
+                <YAxis fontSize={12} className="sm:text-sm" />
+                <Tooltip
+                  contentStyle={{
+                    fontSize: "12px",
+                    borderRadius: "8px",
+                  }}
+                />
                 <Area
                   type="monotone"
                   dataKey="reports"
@@ -471,40 +501,55 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
           </CardContent>
         </Card>
 
-        <Card className="col-span-3">
+        <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Site Priority Distribution</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg sm:text-xl">
+              Site Priority Distribution
+            </CardTitle>
+            <CardDescription className="text-sm">
               Breakdown of sites by priority level
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex justify-center items-center h-[350px]">
+              <div className="flex justify-center items-center h-[280px] sm:h-[350px]">
                 <Spinner />
               </div>
             ) : siteData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer
+                width="100%"
+                height={280}
+                className="sm:h-[350px]"
+              >
                 <PieChart>
                   <Pie
                     data={siteData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, value }) => `${name} ${value}%`}
-                    outerRadius={80}
+                    label={({ name, value }) =>
+                      `${name.split(" ")[0]} ${value}%`
+                    }
+                    outerRadius={60}
+                    className="sm:outerRadius-[80px]"
                     fill="#8884d8"
                     dataKey="value"
+                    fontSize={12}
                   >
                     {siteData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{
+                      fontSize: "12px",
+                      borderRadius: "8px",
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex justify-center items-center h-[350px] text-muted-foreground">
+              <div className="flex justify-center items-center h-[280px] sm:h-[350px] text-muted-foreground text-sm">
                 No sites data available
               </div>
             )}
@@ -512,19 +557,24 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
         </Card>
       </div>
 
-      {/* Recent Activity & Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+      {/* Recent Activity & Quick Actions - Mobile Optimized */}
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-7 lg:gap-4">
+        <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg sm:text-xl">
+              Recent Activity
+            </CardTitle>
+            <CardDescription className="text-sm">
               Latest employee actions and site updates
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-center space-x-4">
+                <div
+                  key={activity.id}
+                  className="flex items-start space-x-3 sm:space-x-4"
+                >
                   <Badge
                     variant={
                       activity.status === "success"
@@ -533,18 +583,19 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
                           ? "secondary"
                           : "outline"
                     }
+                    className="text-xs"
                   >
                     {activity.status}
                   </Badge>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium leading-none">
+                  <div className="flex-1 space-y-1 min-w-0">
+                    <p className="text-sm font-medium leading-none truncate sm:text-wrap">
                       {activity.employee}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {activity.action}
                     </p>
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-xs text-muted-foreground whitespace-nowrap">
                     {activity.time}
                   </div>
                 </div>
@@ -553,31 +604,33 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
           </CardContent>
         </Card>
 
-        <Card className="col-span-3">
+        <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common management tasks</CardDescription>
+            <CardTitle className="text-lg sm:text-xl">Quick Actions</CardTitle>
+            <CardDescription className="text-sm">
+              Common management tasks
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Button className="w-full justify-start" variant="outline">
-              <Users className="mr-2 h-4 w-4" />
-              Manage Employees
+          <CardContent className="space-y-3 sm:space-y-4">
+            <Button className="w-full justify-start text-sm" variant="outline">
+              <Users className="mr-2 h-4 w-4 flex-shrink-0" />
+              <span className="truncate">Manage Employees</span>
             </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <CloudSnow className="mr-2 h-4 w-4" />
-              Site Management
+            <Button className="w-full justify-start text-sm" variant="outline">
+              <CloudSnow className="mr-2 h-4 w-4 flex-shrink-0" />
+              <span className="truncate">Site Management</span>
             </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <FileText className="mr-2 h-4 w-4" />
-              View All Reports
+            <Button className="w-full justify-start text-sm" variant="outline">
+              <FileText className="mr-2 h-4 w-4 flex-shrink-0" />
+              <span className="truncate">View All Reports</span>
             </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Analytics Dashboard
+            <Button className="w-full justify-start text-sm" variant="outline">
+              <TrendingUp className="mr-2 h-4 w-4 flex-shrink-0" />
+              <span className="truncate">Analytics Dashboard</span>
             </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <Activity className="mr-2 h-4 w-4" />
-              System Status
+            <Button className="w-full justify-start text-sm" variant="outline">
+              <Activity className="mr-2 h-4 w-4 flex-shrink-0" />
+              <span className="truncate">System Status</span>
             </Button>
           </CardContent>
         </Card>
@@ -612,11 +665,13 @@ export default function DashboardPage() {
 
   if (!employee || !userRole) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-screen p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>No Company Access</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg sm:text-xl">
+              No Company Access
+            </CardTitle>
+            <CardDescription className="text-sm">
               You don&apos;t appear to be associated with any company yet.
               Please contact your administrator or use an invitation code.
             </CardDescription>
@@ -636,11 +691,13 @@ export default function DashboardPage() {
       ) : isManager ? (
         <ManagerDashboard userRole={userRole} />
       ) : (
-        <div className="flex justify-center items-center h-screen">
-          <Card className="max-w-md">
+        <div className="flex justify-center items-center h-screen p-4">
+          <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle>Access Denied</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg sm:text-xl">
+                Access Denied
+              </CardTitle>
+              <CardDescription className="text-sm">
                 Your role ({userRole}) doesn&apos;t have access to the
                 dashboard.
               </CardDescription>
