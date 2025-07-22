@@ -66,6 +66,11 @@ async function POST(req: NextRequest) {
     }
 
     // Create the company
+    console.log("🏢 Creating company with data:", {
+      name: companyData.name,
+      slug: companyData.slug,
+    });
+
     const { data: company, error: companyError } = await supabaseAdmin
       .from("companies")
       .insert({
@@ -87,10 +92,15 @@ async function POST(req: NextRequest) {
       .single();
 
     if (companyError || !company) {
+      console.error("❌ Company creation failed:", companyError);
       throw companyError || new Error("Failed to create company");
     }
 
+    console.log("✅ Company created successfully:", company.id);
+
     // Create the owner employee record
+    console.log("👤 Creating owner employee for user:", session.user.id);
+
     const { data: employee, error: employeeError } = await supabaseAdmin
       .from("employees")
       .insert({
@@ -105,6 +115,7 @@ async function POST(req: NextRequest) {
       .single();
 
     if (employeeError || !employee) {
+      console.error("❌ Employee creation failed:", employeeError);
       // Rollback - delete the company if employee creation failed
       await supabaseAdmin.from("companies").delete().eq("id", company.id);
       throw (
@@ -112,36 +123,11 @@ async function POST(req: NextRequest) {
       );
     }
 
-    // Create default company settings
-    const { error: settingsError } = await supabaseAdmin
-      .from("company_settings")
-      .insert({
-        company_id: company.id,
-        timezone: "UTC",
-        date_format: "YYYY-MM-DD",
-        time_format: "24h",
-        currency: "USD",
-        material_cost_per_kg: 0.5,
-        require_gps_verification: true,
-        allow_draft_editing_hours: 24,
-        notification_settings: {},
-      })
-      .select()
-      .single();
+    console.log("✅ Employee created successfully:", employee.id);
 
-    if (settingsError) {
-      console.error("❌ Company settings creation failed:", settingsError);
-      secureError("Failed to create company settings:", settingsError);
-
-      // Rollback - delete the company and employee if settings creation failed
-      await supabaseAdmin.from("employees").delete().eq("id", employee.id);
-      await supabaseAdmin.from("companies").delete().eq("id", company.id);
-
-      return NextResponse.json(
-        { error: "Failed to create company settings. Please try again." },
-        { status: 500 }
-      );
-    }
+    // TODO: Create default company settings (temporarily disabled for debugging)
+    // We'll add this back once basic company creation is working
+    console.log("✅ Skipping company settings creation for now");
 
     return NextResponse.json(
       {
