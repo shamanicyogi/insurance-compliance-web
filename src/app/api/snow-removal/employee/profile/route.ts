@@ -11,17 +11,52 @@ import { secureError } from "@/lib/utils/secure-logger";
 async function GET() {
   try {
     const session = await getServerSession(authOptions);
+    console.log("Session:", {
+      userId: session?.user?.id,
+      email: session?.user?.email,
+    });
+
     if (!session?.user?.id) {
+      console.log("No session or user ID found");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get employee profile with company info
+    // First, check if employee exists at all
+    const { data: employeeCheck, error: employeeCheckError } = await supabase
+      .from("employees")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .eq("is_active", true);
+
+    console.log("Employee check result:", {
+      count: employeeCheck?.length,
+      error: employeeCheckError,
+      userId: session.user.id,
+    });
+
+    if (employeeCheckError) {
+      console.error("Employee check error:", employeeCheckError);
+      return NextResponse.json(
+        { error: "Database error checking employee" },
+        { status: 500 }
+      );
+    }
+
+    if (!employeeCheck || employeeCheck.length === 0) {
+      console.log("No employee found for user");
+      return NextResponse.json(
+        { error: "Employee profile not found" },
+        { status: 404 }
+      );
+    }
+
+    // Now get employee with company info using left join instead of inner
     const { data: employee, error: employeeError } = await supabase
       .from("employees")
       .select(
         `
         *,
-        companies!inner(
+        companies(
           id,
           name,
           slug,
@@ -35,7 +70,22 @@ async function GET() {
       .eq("is_active", true)
       .single();
 
-    if (employeeError || !employee) {
+    console.log("Employee with company result:", {
+      employee: employee ? "found" : "not found",
+      hasCompany: employee?.companies ? "yes" : "no",
+      error: employeeError,
+    });
+
+    if (employeeError) {
+      console.error("Employee with company error:", employeeError);
+      return NextResponse.json(
+        { error: "Failed to fetch employee profile" },
+        { status: 500 }
+      );
+    }
+
+    if (!employee) {
+      console.log("Employee not found in second query");
       return NextResponse.json(
         { error: "Employee profile not found" },
         { status: 404 }
@@ -44,6 +94,7 @@ async function GET() {
 
     return NextResponse.json({ employee });
   } catch (error) {
+    console.error("API route error:", error);
     secureError("Error fetching employee profile:", error);
     return NextResponse.json(
       { error: "Failed to fetch employee profile" },
