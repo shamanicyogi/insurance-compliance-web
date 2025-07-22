@@ -599,10 +599,10 @@ export default function DashboardPage() {
   }, [isLoading, companyLoading, user, employee, userRole, router]);
 
   useEffect(() => {
-    if (!user) {
+    if (!user && !isLoading) {
       router.push("/login");
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
 
   if (isLoading || companyLoading) {
     return (
