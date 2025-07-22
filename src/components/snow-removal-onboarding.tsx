@@ -17,8 +17,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Building2, Users, Key, ArrowRight } from "lucide-react";
-import useAuth from "@/lib/auth";
-import { useCompany } from "@/lib/contexts/company-context";
 
 interface CreateCompanyData {
   name: string;
@@ -49,15 +47,6 @@ export function SnowRemovalOnboarding() {
   const [activeTab, setActiveTab] = useState(
     invitationCode ? "join" : "create"
   );
-
-  // TODO REMOVE THIS
-  const { user } = useAuth();
-  const { employee, userRole } = useCompany();
-
-  console.log(employee, "employee 🔥🔥🔥🔥🔥🔥");
-  console.log(userRole, "userRole 🔥🔥🔥🔥🔥🔥");
-  console.log(user, "user 🔥🔥🔥🔥🔥🔥");
-  //
 
   // Create company form state
   const [companyData, setCompanyData] = useState<CreateCompanyData>({

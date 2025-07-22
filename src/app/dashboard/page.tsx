@@ -598,7 +598,8 @@ export default function DashboardPage() {
   // Redirect users without employee records to onboarding
   useEffect(() => {
     if (!isLoading && !companyLoading && user && (!employee || !userRole)) {
-      router.push("/snow-removal/onboarding");
+      // router.push("/snow-removal/onboarding");
+      console.log("No employee or user role");
     }
   }, [isLoading, companyLoading, user, employee, userRole, router]);
 
