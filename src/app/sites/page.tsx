@@ -523,107 +523,123 @@ export default function SitesPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 p-2 sm:p-0">
         {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Sites</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              Sites
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Manage your snow removal sites and locations.
             </p>
           </div>
           <Button
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-sm"
             onClick={() => setIsCreateModalOpen(true)}
           >
-            <Plus className="h-4 w-4" />
-            Add Site
+            <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Add Site</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Sites</CardTitle>
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{sites.length}</div>
-              <p className="text-xs text-muted-foreground">
+        <div className="grid gap-2 sm:gap-4 grid-cols-3">
+          <Card className="p-3 sm:p-4">
+            <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                <span className="text-xs sm:text-sm font-medium text-center">
+                  Total
+                </span>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold">
+                {sites.length}
+              </div>
+              <p className="text-xs text-muted-foreground text-center hidden sm:block">
                 {sites.filter((s) => s.is_active).length} active
               </p>
-            </CardContent>
+            </div>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                High Priority
-              </CardTitle>
-              <MapPin className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+          <Card className="p-3 sm:p-4">
+            <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
+                <span className="text-xs sm:text-sm font-medium text-center">
+                  Priority
+                </span>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold">
                 {sites.filter((s) => s.priority === "high").length}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground text-center hidden sm:block">
                 Require immediate attention
               </p>
-            </CardContent>
+            </div>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Area</CardTitle>
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+          <Card className="p-3 sm:p-4">
+            <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                <span className="text-xs sm:text-sm font-medium text-center">
+                  Area
+                </span>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold">
                 {sites
                   .reduce((total, site) => total + (site.size_sqft || 0), 0)
                   .toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground">Square feet</p>
-            </CardContent>
+              <p className="text-xs text-muted-foreground text-center hidden sm:block">
+                Square feet
+              </p>
+            </div>
           </Card>
         </div>
 
         {/* Sites Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>All Sites</CardTitle>
-            <CardDescription>
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl">All Sites</CardTitle>
+            <CardDescription className="text-sm">
               Manage and monitor all your snow removal locations.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             {sites.length === 0 ? (
-              <div className="text-center py-8">
-                <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No sites yet</h3>
-                <p className="text-muted-foreground mb-4">
+              <div className="text-center py-6 sm:py-8">
+                <MapPin className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-base sm:text-lg font-semibold mb-2">
+                  No sites yet
+                </h3>
+                <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
                   Add your first site to start managing snow removal locations.
                 </p>
-                <Button onClick={() => setIsCreateModalOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="text-sm"
+                >
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                   Add Your First Site
                 </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead className="hidden sm:table-cell">
+                      <TableHead className="min-w-[150px]">Name</TableHead>
+                      <TableHead className="hidden sm:table-cell min-w-[200px]">
                         Address
                       </TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead className="hidden md:table-cell">
+                      <TableHead className="min-w-[80px]">Priority</TableHead>
+                      <TableHead className="hidden md:table-cell min-w-[100px]">
                         Size (sq ft)
                       </TableHead>
-                      <TableHead className="hidden sm:table-cell">
+                      <TableHead className="hidden sm:table-cell min-w-[80px]">
                         Status
                       </TableHead>
                       <TableHead className="w-12"></TableHead>
@@ -634,27 +650,33 @@ export default function SitesPage() {
                       <TableRow key={site.id}>
                         <TableCell className="font-medium">
                           <div>
-                            <div>{site.name}</div>
+                            <div className="text-sm sm:text-base">
+                              {site.name}
+                            </div>
                             {/* Show address on mobile when address column is hidden */}
                             <div className="text-xs text-muted-foreground sm:hidden">
                               {site.address}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground hidden sm:table-cell">
+                        <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
                           {site.address}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getPriorityColor(site.priority)}>
+                          <Badge
+                            variant={getPriorityColor(site.priority)}
+                            className="text-xs"
+                          >
                             {site.priority}
                           </Badge>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">
+                        <TableCell className="hidden md:table-cell text-sm">
                           {site.size_sqft?.toLocaleString() || "N/A"}
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <Badge
                             variant={site.is_active ? "default" : "secondary"}
+                            className="text-xs"
                           >
                             {site.is_active ? "Active" : "Inactive"}
                           </Badge>
@@ -666,7 +688,7 @@ export default function SitesPage() {
                               className="h-8 w-8 p-0"
                               onClick={() => openMobileActions(site)}
                             >
-                              <MoreVertical className="h-4 w-4" />
+                              <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
                           ) : (
                             <DropdownMenu>
@@ -712,16 +734,21 @@ export default function SitesPage() {
 
         {/* Create Site Modal */}
         <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md mx-2 sm:mx-auto max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Site</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-lg">Add New Site</DialogTitle>
+              <DialogDescription className="text-sm">
                 Create a new snow removal site location.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateSite} className="space-y-4">
+            <form
+              onSubmit={handleCreateSite}
+              className="space-y-3 sm:space-y-4"
+            >
               <div className="space-y-2">
-                <Label htmlFor="name">Site Name *</Label>
+                <Label htmlFor="name" className="text-sm">
+                  Site Name *
+                </Label>
                 <Input
                   id="name"
                   value={newSite.name}
@@ -730,11 +757,14 @@ export default function SitesPage() {
                   }
                   placeholder="e.g., Main Office Complex"
                   required
+                  className="text-sm"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Address *</Label>
+                <Label htmlFor="address" className="text-sm">
+                  Address *
+                </Label>
                 <Input
                   id="address"
                   value={newSite.address}
@@ -743,19 +773,22 @@ export default function SitesPage() {
                   }
                   placeholder="e.g., 123 Business Ave, City, ST 12345"
                   required
+                  className="text-sm"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
+                  <Label htmlFor="priority" className="text-sm">
+                    Priority
+                  </Label>
                   <Select
                     value={newSite.priority}
                     onValueChange={(value: "high" | "medium" | "low") =>
                       setNewSite((prev) => ({ ...prev, priority: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -767,7 +800,9 @@ export default function SitesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="size_sqft">Size (sq ft)</Label>
+                  <Label htmlFor="size_sqft" className="text-sm">
+                    Size (sq ft)
+                  </Label>
                   <Input
                     id="size_sqft"
                     type="number"
@@ -779,13 +814,16 @@ export default function SitesPage() {
                       }))
                     }
                     placeholder="50000"
+                    className="text-sm"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="typical_salt_usage_kg">Salt Usage (kg)</Label>
+                  <Label htmlFor="typical_salt_usage_kg" className="text-sm">
+                    Salt Usage (kg)
+                  </Label>
                   <Input
                     id="typical_salt_usage_kg"
                     type="number"
@@ -798,11 +836,14 @@ export default function SitesPage() {
                       }))
                     }
                     placeholder="100.0"
+                    className="text-sm"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="contact_phone">Contact Phone</Label>
+                  <Label htmlFor="contact_phone" className="text-sm">
+                    Contact Phone
+                  </Label>
                   <Input
                     id="contact_phone"
                     type="tel"
@@ -814,12 +855,13 @@ export default function SitesPage() {
                       }))
                     }
                     placeholder="555-1234"
+                    className="text-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="special_instructions">
+                <Label htmlFor="special_instructions" className="text-sm">
                   Special Instructions
                 </Label>
                 <Textarea
@@ -832,20 +874,25 @@ export default function SitesPage() {
                     }))
                   }
                   placeholder="Any special notes or instructions for this site..."
-                  className="min-h-[80px]"
+                  className="min-h-[80px] text-sm"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsCreateModalOpen(false)}
                   disabled={isSubmitting}
+                  className="text-sm w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="text-sm w-full sm:w-auto"
+                >
                   {isSubmitting ? "Creating..." : "Create Site"}
                 </Button>
               </div>
@@ -855,16 +902,18 @@ export default function SitesPage() {
 
         {/* Edit Site Modal */}
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md mx-2 sm:mx-auto max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Site</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-lg">Edit Site</DialogTitle>
+              <DialogDescription className="text-sm">
                 Update the site information.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleEditSite} className="space-y-4">
+            <form onSubmit={handleEditSite} className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-name">Site Name *</Label>
+                <Label htmlFor="edit-name" className="text-sm">
+                  Site Name *
+                </Label>
                 <Input
                   id="edit-name"
                   value={editSite.name}
@@ -873,11 +922,14 @@ export default function SitesPage() {
                   }
                   placeholder="e.g., Main Office Complex"
                   required
+                  className="text-sm"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="edit-address">Address *</Label>
+                <Label htmlFor="edit-address" className="text-sm">
+                  Address *
+                </Label>
                 <Input
                   id="edit-address"
                   value={editSite.address}
@@ -889,19 +941,22 @@ export default function SitesPage() {
                   }
                   placeholder="e.g., 123 Business Ave, City, ST 12345"
                   required
+                  className="text-sm"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-priority">Priority</Label>
+                  <Label htmlFor="edit-priority" className="text-sm">
+                    Priority
+                  </Label>
                   <Select
                     value={editSite.priority}
                     onValueChange={(value: "high" | "medium" | "low") =>
                       setEditSite((prev) => ({ ...prev, priority: value }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -913,7 +968,9 @@ export default function SitesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-size_sqft">Size (sq ft)</Label>
+                  <Label htmlFor="edit-size_sqft" className="text-sm">
+                    Size (sq ft)
+                  </Label>
                   <Input
                     id="edit-size_sqft"
                     type="number"
@@ -925,13 +982,17 @@ export default function SitesPage() {
                       }))
                     }
                     placeholder="50000"
+                    className="text-sm"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-typical_salt_usage_kg">
+                  <Label
+                    htmlFor="edit-typical_salt_usage_kg"
+                    className="text-sm"
+                  >
                     Salt Usage (kg)
                   </Label>
                   <Input
@@ -946,11 +1007,14 @@ export default function SitesPage() {
                       }))
                     }
                     placeholder="100.0"
+                    className="text-sm"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-contact_phone">Contact Phone</Label>
+                  <Label htmlFor="edit-contact_phone" className="text-sm">
+                    Contact Phone
+                  </Label>
                   <Input
                     id="edit-contact_phone"
                     type="tel"
@@ -962,12 +1026,13 @@ export default function SitesPage() {
                       }))
                     }
                     placeholder="555-1234"
+                    className="text-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="edit-special_instructions">
+                <Label htmlFor="edit-special_instructions" className="text-sm">
                   Special Instructions
                 </Label>
                 <Textarea
@@ -980,20 +1045,25 @@ export default function SitesPage() {
                     }))
                   }
                   placeholder="Any special notes or instructions for this site..."
-                  className="min-h-[80px]"
+                  className="min-h-[80px] text-sm"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setIsEditModalOpen(false)}
                   disabled={isSubmitting}
+                  className="text-sm w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="text-sm w-full sm:w-auto"
+                >
                   {isSubmitting ? "Updating..." : "Update Site"}
                 </Button>
               </div>
@@ -1005,12 +1075,16 @@ export default function SitesPage() {
         <Sheet open={isMobileActionsOpen} onOpenChange={setIsMobileActionsOpen}>
           <SheetContent side="bottom" className="h-auto">
             <SheetHeader>
-              <SheetTitle>{selectedMobileSite?.name}</SheetTitle>
-              <SheetDescription>{selectedMobileSite?.address}</SheetDescription>
+              <SheetTitle className="text-lg">
+                {selectedMobileSite?.name}
+              </SheetTitle>
+              <SheetDescription className="text-sm">
+                {selectedMobileSite?.address}
+              </SheetDescription>
             </SheetHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-3 py-4">
               <Button
-                className="w-full justify-start gap-2"
+                className="w-full justify-start gap-2 text-sm"
                 variant="outline"
                 onClick={handleMobileEdit}
               >
@@ -1018,7 +1092,7 @@ export default function SitesPage() {
                 Edit Site
               </Button>
               <Button
-                className="w-full justify-start gap-2"
+                className="w-full justify-start gap-2 text-sm"
                 variant="outline"
                 onClick={handleMobileViewMap}
               >
@@ -1027,7 +1101,7 @@ export default function SitesPage() {
               </Button>
               {canManageEmployees && (
                 <Button
-                  className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                  className="w-full justify-start gap-2 text-sm text-destructive hover:text-destructive"
                   variant="outline"
                   onClick={handleMobileDelete}
                 >
@@ -1041,10 +1115,10 @@ export default function SitesPage() {
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md mx-2 sm:mx-auto">
             <DialogHeader>
-              <DialogTitle>Delete Site</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-lg">Delete Site</DialogTitle>
+              <DialogDescription className="text-sm">
                 Are you sure you want to delete &ldquo;{deletingSite?.name}
                 &rdquo;?
                 {deletingSite && (
@@ -1060,6 +1134,7 @@ export default function SitesPage() {
                 variant="outline"
                 onClick={() => setIsDeleteDialogOpen(false)}
                 disabled={isDeleting}
+                className="text-sm"
               >
                 Cancel
               </Button>
@@ -1067,6 +1142,7 @@ export default function SitesPage() {
                 variant="destructive"
                 onClick={handleDeleteSite}
                 disabled={isDeleting}
+                className="text-sm"
               >
                 {isDeleting ? "Deleting..." : "Delete Site"}
               </Button>
