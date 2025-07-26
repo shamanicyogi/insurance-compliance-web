@@ -105,6 +105,7 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
     setValue,
     getValues,
     formState: { errors, isSubmitting },
+    reset,
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -292,39 +293,28 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
     }
   };
 
-  const addSite = () => {
-    const dispatchTime = getValues("dispatched_for");
-    const existingSites = getValues("sites");
+  const addSite = useCallback(() => {
+    const addHoursToTime = (timeStr: string, hours: number): string => {
+      const [hoursStr, minutesStr] = timeStr.split(":");
+      const date = new Date();
+      date.setHours(parseInt(hoursStr) + hours, parseInt(minutesStr), 0, 0);
+      return date.toTimeString().slice(0, 5);
+    };
 
-    // Calculate start time for the new site
+    const currentSites = watch("sites");
+    const lastSite = currentSites[currentSites.length - 1];
+    const dispatchedFor = watch("dispatched_for");
+
     let newStartTime = "";
     let newFinishTime = "";
 
-    if (dispatchTime && existingSites.length > 0) {
-      const addHoursToTime = (timeStr: string, hours: number): string => {
-        const [hoursStr, minutesStr] = timeStr.split(":");
-        const date = new Date();
-        date.setHours(parseInt(hoursStr) + hours, parseInt(minutesStr), 0, 0);
-        return date.toTimeString().slice(0, 5);
-      };
-
-      // Find the last site with a finish time
-      const lastSiteWithFinish = existingSites
-        .slice()
-        .reverse()
-        .find((site) => site.finish_time);
-
-      if (lastSiteWithFinish?.finish_time) {
-        // Start 1 hour after the last site's finish time
-        newStartTime = addHoursToTime(lastSiteWithFinish.finish_time, 1);
-      } else {
-        // Fallback: calculate based on dispatch time and number of sites
-        newStartTime = addHoursToTime(
-          dispatchTime,
-          1 + existingSites.length * 2
-        );
-      }
-
+    if (lastSite?.finish_time) {
+      // Start 1 hour after the last site's finish time
+      newStartTime = addHoursToTime(lastSite.finish_time, 1);
+      newFinishTime = addHoursToTime(newStartTime, 1);
+    } else if (dispatchedFor) {
+      // First additional site: start 1 hour after dispatch time
+      newStartTime = addHoursToTime(dispatchedFor, 1);
       newFinishTime = addHoursToTime(newStartTime, 1);
     }
 
@@ -332,14 +322,14 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
       site_id: "",
       start_time: newStartTime,
       finish_time: newFinishTime,
-      snow_removal_method: "noAction",
-      follow_up_plans: "allClear",
+      snow_removal_method: "noAction" as SnowRemovalMethod,
+      follow_up_plans: "allClear" as FollowUpPlan,
       salt_used_kg: 0,
       deicing_material_kg: 0,
       salt_alternative_kg: 0,
       comments: "",
     });
-  };
+  }, [append, watch]);
 
   const removeSite = (index: number) => {
     if (fields.length > 1) {
@@ -418,6 +408,38 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
       });
 
       await onSubmit?.(reports);
+
+      // Reset form after successful submission
+      reset({
+        date: new Date().toISOString().split("T")[0],
+        dispatched_for: new Date().toTimeString().slice(0, 5),
+        truck: "",
+        tractor: "",
+        handwork: "",
+        sites: [
+          {
+            site_id: "",
+            start_time: "",
+            finish_time: "",
+            snow_removal_method: "noAction" as SnowRemovalMethod,
+            follow_up_plans: "allClear" as FollowUpPlan,
+            salt_used_kg: 0,
+            deicing_material_kg: 0,
+            salt_alternative_kg: 0,
+            comments: "",
+          },
+        ],
+        is_draft: false,
+      });
+
+      // Refresh weather data for the new session
+      refreshWeatherData();
+
+      toast.success(
+        data.is_draft
+          ? "Draft saved successfully!"
+          : "Report submitted successfully!"
+      );
     } catch (error) {
       console.error("Error submitting form:", error);
       toast.error("Error submitting form");
@@ -605,21 +627,30 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                       <SelectValue placeholder="Select a site" />
                     </SelectTrigger>
                     <SelectContent>
-                      {sites.map((site) => (
-                        <SelectItem key={site.id} value={site.id}>
-                          <div className="flex items-center justify-between w-full">
-                            <span>{site.name}</span>
-                            {site.priority && (
-                              <Badge
-                                variant="secondary"
-                                className="ml-2 bg-background text-foreground border-border hover:bg-background hover:text-foreground"
-                              >
-                                {site.priority}
-                              </Badge>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {sites
+                        .filter(
+                          (site) =>
+                            // Allow current selection or sites not already selected
+                            watch(`sites.${index}.site_id`) === site.id ||
+                            !watch("sites").some(
+                              (s, i) => i !== index && s.site_id === site.id
+                            )
+                        )
+                        .map((site) => (
+                          <SelectItem key={site.id} value={site.id}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{site.name}</span>
+                              {site.priority && (
+                                <Badge
+                                  variant="secondary"
+                                  className="ml-2 bg-background text-foreground border-border hover:bg-background hover:text-foreground"
+                                >
+                                  {site.priority}
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   {errors.sites?.[index]?.site_id && (
