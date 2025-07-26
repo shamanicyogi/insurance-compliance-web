@@ -329,6 +329,16 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
       salt_alternative_kg: 0,
       comments: "",
     });
+
+    // Prevent iOS time picker from auto-opening on new inputs
+    setTimeout(() => {
+      const timeInputs = document.querySelectorAll('input[type="time"]');
+      timeInputs.forEach((input) => {
+        if (input === document.activeElement) {
+          (input as HTMLElement).blur();
+        }
+      });
+    }, 100);
   }, [append, watch]);
 
   const removeSite = (index: number) => {
@@ -731,6 +741,7 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                     type="time"
                     className="w-full"
                     {...register(`sites.${index}.start_time`)}
+                    autoFocus={false}
                   />
                 </div>
 
@@ -743,6 +754,7 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                     type="time"
                     className="w-full"
                     {...register(`sites.${index}.finish_time`)}
+                    autoFocus={false}
                   />
                 </div>
               </div>
