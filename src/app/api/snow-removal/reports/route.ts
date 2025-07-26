@@ -164,9 +164,9 @@ async function POST(req: NextRequest) {
 
     if (site.latitude && site.longitude && !hasFormWeatherData) {
       try {
-        // Use our secure weather API endpoint for consistency
+        // Use our secure weather API endpoint for consistency with date parameter
         const weatherResponse = await fetch(
-          `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/snow-removal/weather?lat=${site.latitude}&lon=${site.longitude}`,
+          `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/snow-removal/weather?lat=${site.latitude}&lon=${site.longitude}&date=${reportData.date}`,
           {
             headers: {
               Cookie: req.headers.get("cookie") || "",

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { withErrorHandling } from "@/lib/api-error-handler";
 import { secureError } from "@/lib/utils/secure-logger";
+import { WeatherCacheService } from "@/lib/services/weather-cache-service";
 
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY; // Server-side only
 const OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5";
@@ -81,6 +82,8 @@ async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const latitude = searchParams.get("lat");
     const longitude = searchParams.get("lon");
+    const dateParam = searchParams.get("date");
+    const forceRefresh = searchParams.get("force") === "true";
 
     if (!latitude || !longitude) {
       return NextResponse.json(
@@ -96,6 +99,40 @@ async function GET(req: NextRequest) {
       return NextResponse.json(
         { error: "Invalid latitude or longitude" },
         { status: 400 }
+      );
+    }
+
+    // Use provided date or default to today
+    const date = dateParam || new Date().toISOString().split("T")[0];
+
+    // Initialize cache service
+    const cacheService = new WeatherCacheService();
+
+    // Check cache first (unless force refresh is requested)
+    if (!forceRefresh) {
+      console.log(
+        `🔄 [WEATHER API] Checking cache for location ${lat},${lon} on ${date}`
+      );
+      const cachedData = await cacheService.getCachedDailyWeather(
+        lat,
+        lon,
+        date
+      );
+      if (cachedData) {
+        console.log(
+          `🎯 [WEATHER API] ✅ CACHE HIT - returning cached data for ${lat},${lon} on ${date}`
+        );
+        console.log(
+          `🚀 [WEATHER API] Saved OpenWeather API call! (cached data returned)`
+        );
+        return NextResponse.json(cachedData);
+      }
+      console.log(
+        `🔄 [WEATHER API] ❌ CACHE MISS - will call OpenWeather API for ${lat},${lon} on ${date}`
+      );
+    } else {
+      console.log(
+        `🔄 [WEATHER API] 🔄 FORCE REFRESH requested for ${lat},${lon} on ${date} - bypassing cache`
       );
     }
 
@@ -154,9 +191,16 @@ async function GET(req: NextRequest) {
     };
 
     try {
+      console.log(
+        `🌐 [WEATHER API] 📡 Making OpenWeather API call for ${lat},${lon} on ${date}`
+      );
+
       // Fetch current weather with retry logic
       const currentWeatherUrl = `${OPENWEATHER_BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
 
+      console.log(
+        `🌐 [WEATHER API] Fetching current weather from OpenWeather...`
+      );
       const currentResponse = await fetchWithRetry(currentWeatherUrl);
 
       if (!currentResponse.ok) {
@@ -184,14 +228,23 @@ async function GET(req: NextRequest) {
       // Fetch forecast for trend analysis (with retry)
       const forecastUrl = `${OPENWEATHER_BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
 
+      console.log(
+        `🌐 [WEATHER API] Fetching 5-day forecast from OpenWeather...`
+      );
       let forecastData = { list: [] };
       try {
         const forecastResponse = await fetchWithRetry(forecastUrl);
         forecastData = forecastResponse.ok
           ? await forecastResponse.json()
           : { list: [] };
+        console.log(
+          `🌐 [WEATHER API] ✅ Forecast data received (${forecastData.list?.length || 0} entries)`
+        );
       } catch (error) {
-        console.warn("Forecast fetch failed, using empty data:", error);
+        console.warn(
+          "🌐 [WEATHER API] ⚠️ Forecast fetch failed, using empty data:",
+          error
+        );
         // Continue with empty forecast data instead of failing
       }
 
@@ -273,6 +326,43 @@ async function GET(req: NextRequest) {
         forecast_id: `owm_${currentData.dt}_${Date.now()}`,
       };
 
+      console.log(
+        `🌐 [WEATHER API] ✅ OpenWeather API data processed successfully:`
+      );
+      console.log(
+        `   🌡️  Temperature: ${temperature}°C (${Math.round(dayLow * 10) / 10}° - ${Math.round(dayHigh * 10) / 10}°)`
+      );
+      console.log(`   🌤️  Conditions: ${conditions}`);
+      console.log(`   ❄️  Snowfall: ${snowfall}cm`);
+      console.log(
+        `   📊 Confidence: ${Math.round(Math.max(0.1, confidence) * 100)}%`
+      );
+
+      // Cache the daily forecast for future requests
+      const cacheSuccess = await cacheService.cacheDailyWeatherData(
+        lat,
+        lon,
+        date,
+        weatherData,
+        { current: currentData, forecast: forecastData }
+      );
+
+      if (cacheSuccess) {
+        console.log(
+          `🎯 [WEATHER API] ✅ Weather data cached successfully for future requests`
+        );
+        console.log(
+          `💰 [WEATHER API] Next request for ${lat},${lon} on ${date} will be served from cache!`
+        );
+      } else {
+        console.warn(
+          `❌ [WEATHER API] Failed to cache daily weather data for ${lat},${lon} on ${date}`
+        );
+      }
+
+      console.log(
+        `🚀 [WEATHER API] Returning fresh weather data from OpenWeather API`
+      );
       return NextResponse.json(weatherData);
     } catch (error) {
       secureError("Error fetching weather data:", error);
