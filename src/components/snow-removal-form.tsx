@@ -264,15 +264,13 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
 
   // Refresh weather data function
   const refreshWeatherData = async () => {
-    if (!watchedDate) return;
-
     setWeatherLoading(true);
     setWeatherData(null);
 
     try {
       // Use current date for weather fetch with force refresh
       const response = await fetch(
-        `/api/snow-removal/weather?date=${watchedDate}&force=true`
+        `/api/snow-removal/weather?date=${watchedDate}&lat=${sites[0].latitude}&lon=${sites[0].longitude}&force=true`
       );
 
       if (response.ok) {
