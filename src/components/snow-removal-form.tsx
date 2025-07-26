@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -114,7 +114,7 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date().toISOString().split("T")[0],
-      dispatched_for: "",
+      dispatched_for: new Date().toTimeString().slice(0, 5), // Current time in HH:MM format
       truck: "",
       tractor: "",
       handwork: "",
@@ -141,6 +141,7 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
   });
 
   const watchedDate = watch("date");
+  const watchedDispatchedFor = watch("dispatched_for");
 
   // Load sites on component mount
   useEffect(() => {
@@ -202,6 +203,65 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
     loadWeatherData();
   }, [sites]);
 
+  // Auto-populate site times when a site is selected
+  const populateTimesForSite = useCallback(
+    (siteIndex: number) => {
+      const dispatchTime = getValues("dispatched_for");
+      if (!dispatchTime) return;
+
+      const addHoursToTime = (timeStr: string, hours: number): string => {
+        const [hoursStr, minutesStr] = timeStr.split(":");
+        const date = new Date();
+        date.setHours(parseInt(hoursStr) + hours, parseInt(minutesStr), 0, 0);
+        return date.toTimeString().slice(0, 5);
+      };
+
+      const allSites = getValues("sites");
+      const currentSite = allSites[siteIndex];
+
+      // Only populate if times are empty (don't override user input)
+      if (
+        currentSite.site_id &&
+        !currentSite.start_time &&
+        !currentSite.finish_time
+      ) {
+        let startTime: string;
+
+        if (siteIndex === 0) {
+          // First site: start 1 hour after dispatch
+          startTime = addHoursToTime(dispatchTime, 1);
+        } else {
+          // Subsequent sites: start 1 hour after previous site's finish
+          const previousSite = allSites[siteIndex - 1];
+          if (previousSite.finish_time) {
+            startTime = addHoursToTime(previousSite.finish_time, 1);
+          } else {
+            // If previous site doesn't have finish time, calculate from dispatch
+            startTime = addHoursToTime(dispatchTime, 1 + siteIndex * 2);
+          }
+        }
+
+        const finishTime = addHoursToTime(startTime, 1);
+
+        setValue(`sites.${siteIndex}.start_time`, startTime);
+        setValue(`sites.${siteIndex}.finish_time`, finishTime);
+      }
+    },
+    [getValues, setValue]
+  );
+
+  // Watch for dispatch time changes and update all sites
+  useEffect(() => {
+    if (watchedDispatchedFor) {
+      const currentSites = getValues("sites");
+      currentSites.forEach((site, index) => {
+        if (site.site_id && !site.start_time && !site.finish_time) {
+          populateTimesForSite(index);
+        }
+      });
+    }
+  }, [watchedDispatchedFor, populateTimesForSite, getValues]);
+
   // Refresh weather data function
   const refreshWeatherData = async () => {
     if (!watchedDate) return;
@@ -240,10 +300,45 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
   };
 
   const addSite = () => {
+    const dispatchTime = getValues("dispatched_for");
+    const existingSites = getValues("sites");
+
+    // Calculate start time for the new site
+    let newStartTime = "";
+    let newFinishTime = "";
+
+    if (dispatchTime && existingSites.length > 0) {
+      const addHoursToTime = (timeStr: string, hours: number): string => {
+        const [hoursStr, minutesStr] = timeStr.split(":");
+        const date = new Date();
+        date.setHours(parseInt(hoursStr) + hours, parseInt(minutesStr), 0, 0);
+        return date.toTimeString().slice(0, 5);
+      };
+
+      // Find the last site with a finish time
+      const lastSiteWithFinish = existingSites
+        .slice()
+        .reverse()
+        .find((site) => site.finish_time);
+
+      if (lastSiteWithFinish?.finish_time) {
+        // Start 1 hour after the last site's finish time
+        newStartTime = addHoursToTime(lastSiteWithFinish.finish_time, 1);
+      } else {
+        // Fallback: calculate based on dispatch time and number of sites
+        newStartTime = addHoursToTime(
+          dispatchTime,
+          1 + existingSites.length * 2
+        );
+      }
+
+      newFinishTime = addHoursToTime(newStartTime, 1);
+    }
+
     append({
       site_id: "",
-      start_time: "",
-      finish_time: "",
+      start_time: newStartTime,
+      finish_time: newFinishTime,
       snow_removal_method: "noAction",
       follow_up_plans: "allClear",
       salt_used_kg: 0,
@@ -503,7 +598,11 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                         control={control}
                         render={({ field }) => (
                           <Select
-                            onValueChange={field.onChange}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              // Auto-populate times when site is selected
+                              setTimeout(() => populateTimesForSite(index), 0);
+                            }}
                             value={field.value}
                           >
                             <SelectTrigger
