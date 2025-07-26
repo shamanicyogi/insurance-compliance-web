@@ -372,7 +372,8 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
       // Create individual reports for each site - exactly like single form
       const reports: CreateReportRequest[] = data.sites.map((siteData) => {
         const site = sites.find((s) => s.id === siteData.site_id);
-        return {
+        const report: CreateReportRequest = {
+          // Site-specific data
           site_id: siteData.site_id,
           date: data.date,
           dispatched_for: data.dispatched_for,
@@ -382,10 +383,10 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
           tractor: data.tractor,
           handwork: data.handwork,
           snow_removal_method: siteData.snow_removal_method,
-          follow_up_plans: siteData.follow_up_plans,
           salt_used_kg: siteData.salt_used_kg || 0,
           deicing_material_kg: siteData.deicing_material_kg || 0,
           salt_alternative_kg: siteData.salt_alternative_kg || 0,
+          follow_up_plans: siteData.follow_up_plans,
           comments: siteData.comments,
           is_draft: data.is_draft,
 
@@ -401,7 +402,26 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
           snowfall_accumulation_cm: weatherData?.snowfall || 0,
           precipitation_type: weatherData?.conditions || "clear",
           submitted_at: data.is_draft ? undefined : new Date().toISOString(),
+
+          // Include structured weather data for storage
+          weather_data: weatherData
+            ? {
+                api_source: "openweathermap",
+                temperature: weatherData.temperature,
+                precipitation: weatherData.precipitation || 0,
+                wind_speed: weatherData.wind_speed,
+                conditions: weatherData.conditions,
+                forecast_confidence: weatherData.forecast_confidence,
+                daytime_high: weatherData.daytime_high,
+                daytime_low: weatherData.daytime_low,
+                snowfall: weatherData.snowfall,
+                trend: weatherData.trend,
+                isFromCache: weatherData.isFromCache,
+                cacheAge: weatherData.cacheAge,
+              }
+            : undefined,
         };
+        return report;
       });
 
       await onSubmit?.(reports);

@@ -192,6 +192,12 @@ export type SnowRemovalReport = {
     wind_speed: number;
     conditions: string;
     forecast_confidence: number;
+    daytime_high?: number;
+    daytime_low?: number;
+    snowfall?: number;
+    trend?: string;
+    isFromCache?: boolean;
+    cacheAge?: number;
   };
 
   // Auto-calculation data

@@ -4,6 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { withErrorHandling } from "@/lib/api-error-handler";
 import { secureError } from "@/lib/utils/secure-logger";
+import {
+  WebhookLocationService,
+  type WebhookLocationResult,
+} from "@/lib/services/webhook-location-service";
 import type { CreateReportRequest } from "@/types/snow-removal";
 
 /**
@@ -227,6 +231,40 @@ async function POST(req: NextRequest) {
       secureError("Error calculating material usage:", error);
     }
 
+    // Query webhook events near the site location
+    let webhookEvents: WebhookLocationResult[] = [];
+    if (site.latitude && site.longitude) {
+      try {
+        console.log(
+          `🔍 Querying webhook events for site ${site.name} at ${site.latitude}, ${site.longitude} on ${reportData.date}`
+        );
+
+        webhookEvents = await WebhookLocationService.findEventsByLocationRadius(
+          {
+            latitude: site.latitude,
+            longitude: site.longitude,
+            date: reportData.date,
+            radiusKm: 0.1, // 100 meters
+          }
+        );
+
+        console.log(
+          `📍 Found ${webhookEvents.length} webhook events within 100m of site ${site.name}`
+        );
+
+        if (webhookEvents.length > 0) {
+          webhookEvents.forEach((event, index) => {
+            console.log(
+              `  Event ${index + 1}: ${event.event_type} at ${event.timestamp} (Vehicle: ${event.vehicle_id})`
+            );
+          });
+        }
+      } catch (error) {
+        secureError("Error querying webhook events:", error);
+        // Continue without webhook data - don't fail the report creation
+      }
+    }
+
     // Merge provided data with auto-filled data
     const finalReportData = {
       ...reportData,
@@ -235,9 +273,38 @@ async function POST(req: NextRequest) {
       operator: session.user.name || session.user.email || "Unknown",
       site_name: site.name,
       calculations,
+      webhook_events: webhookEvents, // Store the associated webhook events
+      webhook_events_count: webhookEvents.length,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
+
+    // Log weather data storage for debugging
+    console.log(`🌤️ Weather data storage for site ${site.name}:`);
+    console.log(
+      `  - Form provided weather: ${hasFormWeatherData ? "Yes" : "No"}`
+    );
+    console.log(`  - Auto-fetched weather: ${weatherData ? "Yes" : "No"}`);
+    if (finalReportData.weather_data) {
+      console.log(
+        `  - Weather API source: ${finalReportData.weather_data.api_source}`
+      );
+      console.log(
+        `  - Temperature: ${finalReportData.weather_data.temperature}°C`
+      );
+      console.log(`  - Conditions: ${finalReportData.weather_data.conditions}`);
+      console.log(
+        `  - Precipitation: ${finalReportData.weather_data.precipitation}mm`
+      );
+      console.log(
+        `  - Wind speed: ${finalReportData.weather_data.wind_speed}km/h`
+      );
+      console.log(
+        `  - Forecast confidence: ${finalReportData.weather_data.forecast_confidence}%`
+      );
+    } else {
+      console.log(`  - Weather data: Not included`);
+    }
 
     // Create the report
     const { data: report, error } = await supabase
@@ -248,7 +315,20 @@ async function POST(req: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ report }, { status: 201 });
+    // Confirm weather data was stored
+    if (report.weather_data) {
+      console.log(`✅ Weather data successfully stored in report ${report.id}`);
+    } else {
+      console.log(`⚠️ No weather data stored in report ${report.id}`);
+    }
+
+    return NextResponse.json(
+      {
+        report,
+        webhook_events_found: webhookEvents.length,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     secureError("Error creating snow removal report:", error);
     return NextResponse.json(
