@@ -27,6 +27,30 @@ export type CompanyRole = "owner" | "admin" | "manager" | "employee";
 
 export type SubscriptionPlan = "trial" | "basic" | "premium" | "enterprise";
 
+// Webhook event types for RAM Tracking integration
+export type WebhookEventType =
+  | "ARRIVED"
+  | "STOPPED"
+  | "DRIVING"
+  | "DEPARTED"
+  | "SPEEDING"
+  | "MAINTENANCE"
+  | "JOB_COMPLETED"
+  | string; // Allow other event types
+
+export type WebhookEvent = {
+  id: string;
+  event_type: WebhookEventType;
+  vehicle_id: string;
+  timestamp: string;
+  location: string;
+  latitude: number;
+  longitude: number;
+  speed: number;
+  distance_from_site?: number; // Distance in km from the report site
+  raw_payload?: Record<string, unknown>;
+};
+
 export type Company = {
   id: string;
   name: string;
@@ -178,6 +202,10 @@ export type SnowRemovalReport = {
     condition_factor: number;
     cost_per_kg: number;
   };
+
+  // Webhook events data (RAM Tracking integration)
+  webhook_events?: WebhookEvent[];
+  webhook_events_count?: number;
 };
 
 export type WeatherApiResponse = {
