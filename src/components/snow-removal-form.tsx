@@ -749,6 +749,16 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                         {...register(`sites.${index}.salt_used_kg`, {
                           valueAsNumber: true,
                         })}
+                        onFocus={(e) => {
+                          if (e.target.value === "0") {
+                            e.target.value = "";
+                          }
+                        }}
+                        onBlur={(e) => {
+                          if (e.target.value === "") {
+                            setValue(`sites.${index}.salt_used_kg`, 0);
+                          }
+                        }}
                       />
                     </div>
 
@@ -761,6 +771,16 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                         {...register(`sites.${index}.deicing_material_kg`, {
                           valueAsNumber: true,
                         })}
+                        onFocus={(e) => {
+                          if (e.target.value === "0") {
+                            e.target.value = "";
+                          }
+                        }}
+                        onBlur={(e) => {
+                          if (e.target.value === "") {
+                            setValue(`sites.${index}.deicing_material_kg`, 0);
+                          }
+                        }}
                       />
                     </div>
 
@@ -773,6 +793,16 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                         {...register(`sites.${index}.salt_alternative_kg`, {
                           valueAsNumber: true,
                         })}
+                        onFocus={(e) => {
+                          if (e.target.value === "0") {
+                            e.target.value = "";
+                          }
+                        }}
+                        onBlur={(e) => {
+                          if (e.target.value === "") {
+                            setValue(`sites.${index}.salt_alternative_kg`, 0);
+                          }
+                        }}
                       />
                     </div>
                   </div>
