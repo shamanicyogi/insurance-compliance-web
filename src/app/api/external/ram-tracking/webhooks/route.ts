@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { secureError } from "@/lib/utils/secure-logger";
