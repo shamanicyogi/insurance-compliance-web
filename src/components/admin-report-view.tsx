@@ -134,84 +134,111 @@ export function AdminReportView({
   const currentReport = isEditing ? editedReport : report;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        // Close modal when clicking on backdrop
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-auto relative">
+        {/* Close button in top right */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <div className="flex items-center gap-4">
-            <div>
-              <h2 className="text-2xl font-bold flex items-center gap-2">
+        <div className="p-6 border-b space-y-4">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-2xl font-bold flex items-center gap-2 mb-2">
                 <MapPin className="h-6 w-6 text-muted-foreground" />
-                {currentReport.sites?.name || "Unknown Site"}
+                <span className="truncate">
+                  {currentReport.sites?.name || "Unknown Site"}
+                </span>
               </h2>
               <p className="text-muted-foreground">
                 {format(new Date(currentReport.date), "EEEE, MMMM d, yyyy")}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={currentReport.is_draft ? "outline" : "default"}>
-                {currentReport.is_draft ? "Draft" : "Submitted"}
-              </Badge>
-              <Badge variant="secondary">
-                {currentReport.employees?.employee_number || "Unknown Employee"}
-              </Badge>
+
+            <div className="flex flex-col md:flex-row md:items-start gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant={currentReport.is_draft ? "outline" : "default"}>
+                  {currentReport.is_draft ? "Draft" : "Submitted"}
+                </Badge>
+                <Badge variant="secondary">
+                  {currentReport.employees?.employee_number ||
+                    "Unknown Employee"}
+                </Badge>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {!isEditing && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadPdf}
+                      disabled={downloadingPdf}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span className="hidden sm:inline">
+                        {downloadingPdf ? "Generating..." : "Download Report"}
+                      </span>
+                      <span className="sm:hidden">
+                        {downloadingPdf ? "Gen..." : "PDF"}
+                      </span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span className="hidden sm:inline">Edit</span>
+                    </Button>
+                  </>
+                )}
+
+                {isEditing && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsEditing(false);
+                        setEditedReport(report);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="hidden sm:inline">Cancel</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="flex items-center gap-2"
+                    >
+                      <Save className="h-4 w-4" />
+                      <span className="hidden sm:inline">
+                        {saving ? "Saving..." : "Save"}
+                      </span>
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {!isEditing && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadPdf}
-                  disabled={downloadingPdf}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  {downloadingPdf ? "Generating..." : "Download Report"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Edit className="h-4 w-4" />
-                  Edit
-                </Button>
-              </>
-            )}
-
-            {isEditing && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditedReport(report);
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <X className="h-4 w-4" />
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex items-center gap-2"
-                >
-                  <Save className="h-4 w-4" />
-                  {saving ? "Saving..." : "Save"}
-                </Button>
-              </>
-            )}
-
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 
@@ -388,7 +415,7 @@ export function AdminReportView({
                         })
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -420,7 +447,7 @@ export function AdminReportView({
                         })
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
