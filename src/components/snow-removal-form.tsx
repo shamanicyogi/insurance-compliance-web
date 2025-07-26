@@ -1,20 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-// import { useSession } from "next-auth/react";
-import {
-  MapPin,
-  Clock,
-  Thermometer,
-  CloudSnow,
-  Calculator,
-  Save,
-  Send,
-  AlertCircle,
-} from "lucide-react";
+import { MapPin, Clock, Save, Send, Plus, Trash2, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -36,47 +26,38 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 import type {
   Site,
   CreateReportRequest,
   WeatherCondition,
   WeatherTrend,
-  SnowRemovalReportWithRelations,
 } from "@/types/snow-removal";
+
+import { EnhancedWeatherDisplay } from "@/components/enhanced-weather-display";
 
 interface WeatherData {
   temperature: number;
   conditions: WeatherCondition;
   snowfall: number;
+  precipitation: number;
+  wind_speed: number;
   trend: WeatherTrend;
   forecast_confidence: number;
-  // Enhanced forecast data from API
   daytime_high: number;
   daytime_low: number;
   forecast_id?: string;
+  isFromCache?: boolean;
+  cacheAge?: number;
 }
 
-interface Calculations {
-  salt_recommendation_kg: number;
-  material_cost_estimate: number;
-  temperature_factor: number;
-  condition_factor: number;
-}
-
-// Form validation schema
-const snowRemovalSchema = z.object({
+// Validation schema - exactly like single form but with multiple sites
+const siteSchema = z.object({
   site_id: z.string().min(1, "Site is required"),
-  date: z.string().min(1, "Date is required"),
-  dispatched_for: z.string().min(1, "Dispatch time is required"),
   start_time: z.string().min(1, "Start time is required"),
   finish_time: z.string().optional(),
-  truck: z.string().optional(),
-  tractor: z.string().optional(),
-  handwork: z.string().optional(),
   snow_removal_method: z.enum([
     "plow",
     "shovel",
@@ -95,120 +76,71 @@ const snowRemovalSchema = z.object({
   deicing_material_kg: z.number().min(0).optional(),
   salt_alternative_kg: z.number().min(0).optional(),
   comments: z.string().optional(),
+});
+
+const formSchema = z.object({
+  date: z.string().min(1, "Date is required"),
+  dispatched_for: z.string().min(1, "Dispatch time is required"),
+  truck: z.string().optional(),
+  tractor: z.string().optional(),
+  handwork: z.string().optional(),
+  sites: z.array(siteSchema).min(1, "At least one site is required"),
   is_draft: z.boolean().default(true),
 });
 
-type FormData = z.infer<typeof snowRemovalSchema>;
+type FormData = z.infer<typeof formSchema>;
 
 interface SnowRemovalFormProps {
-  reportId?: string;
-  existingReport?: SnowRemovalReportWithRelations; // For editing drafts
-  onSubmit?: (data: CreateReportRequest) => Promise<void>;
+  onSubmit?: (data: CreateReportRequest[]) => Promise<void>;
   className?: string;
 }
 
-const WeatherConditionBadge = ({
-  condition,
-}: {
-  condition: WeatherCondition;
-}) => {
-  const colors = {
-    clear: "bg-green-100 text-green-800",
-    rain: "bg-blue-100 text-blue-800",
-    lightSnow: "bg-gray-100 text-gray-800",
-    heavySnow: "bg-slate-100 text-slate-800",
-    driftingSnow: "bg-cyan-100 text-cyan-800",
-    freezingRain: "bg-red-100 text-red-800",
-    sleet: "bg-purple-100 text-purple-800",
-  };
-
-  const labels = {
-    clear: "Clear",
-    rain: "Rain",
-    lightSnow: "Light Snow",
-    heavySnow: "Heavy Snow",
-    driftingSnow: "Drifting Snow",
-    freezingRain: "Freezing Rain",
-    sleet: "Sleet",
-  };
-
-  return <Badge className={colors[condition]}>{labels[condition]}</Badge>;
-};
-
-export function SnowRemovalForm({
-  // reportId,
-  existingReport,
-  onSubmit,
-  className,
-}: SnowRemovalFormProps) {
-  // const { data: session } = useSession();
+export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(false);
   const [sitesLoading, setSitesLoading] = useState(true);
   const [weatherLoading, setWeatherLoading] = useState(false);
-  const [weatherError, setWeatherError] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [calculations, setCalculations] = useState<Calculations | null>(null);
-  const [gpsLocation, setGpsLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
 
-  // Manual weather input state (used when auto-fetch fails)
-  const [manualWeather, setManualWeather] = useState({
-    temperature: "",
-    snowfall: "",
-    conditions: "clear" as WeatherCondition,
-    trend: "steady" as WeatherTrend,
-  });
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(snowRemovalSchema),
-    defaultValues: existingReport
-      ? {
-          // Use existing report data for editing
-          site_id: existingReport.site_id,
-          date: existingReport.date,
-          dispatched_for: existingReport.dispatched_for,
-          start_time: existingReport.start_time,
-          finish_time: existingReport.finish_time || "",
-          truck: existingReport.truck || "",
-          tractor: existingReport.tractor || "",
-          handwork: existingReport.handwork || "",
-          snow_removal_method: existingReport.snow_removal_method,
-          follow_up_plans: existingReport.follow_up_plans,
-          salt_used_kg: existingReport.salt_used_kg || 0,
-          deicing_material_kg: existingReport.deicing_material_kg || 0,
-          salt_alternative_kg: existingReport.salt_alternative_kg || 0,
-          comments: existingReport.comments || "",
-          is_draft: existingReport.is_draft,
-        }
-      : {
-          // Default values for new reports
-          date: new Date().toISOString().split("T")[0],
-          dispatched_for: new Date().toTimeString().slice(0, 5),
-          start_time: new Date().toTimeString().slice(0, 5),
-          is_draft: true,
+  const {
+    control,
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    getValues,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      date: new Date().toISOString().split("T")[0],
+      dispatched_for: "",
+      truck: "",
+      tractor: "",
+      handwork: "",
+      sites: [
+        {
+          site_id: "",
+          start_time: "",
+          finish_time: "",
+          snow_removal_method: "noAction",
+          follow_up_plans: "allClear",
           salt_used_kg: 0,
           deicing_material_kg: 0,
           salt_alternative_kg: 0,
-          // Fix controlled/uncontrolled input warnings
-          truck: "",
-          tractor: "",
-          handwork: "",
-          finish_time: "",
           comments: "",
         },
+      ],
+      is_draft: true,
+    },
   });
 
-  const {
-    watch,
-    setValue,
-    handleSubmit,
+  const { fields, append, remove } = useFieldArray({
     control,
-    formState: { errors, isValid },
-  } = form;
-  const selectedSiteId = watch("site_id");
+    name: "sites",
+  });
+
+  const watchedDate = watch("date");
 
   // Load sites on component mount
   useEffect(() => {
@@ -218,11 +150,10 @@ export function SnowRemovalForm({
         if (response.ok) {
           const data = await response.json();
           setSites(data.sites);
-        } else {
-          toast.error("Failed to load sites");
         }
-      } catch {
-        toast.error("Error loading sites");
+      } catch (error) {
+        console.error("Error loading sites:", error);
+        toast.error("Failed to load sites");
       } finally {
         setSitesLoading(false);
       }
@@ -231,1138 +162,560 @@ export function SnowRemovalForm({
     loadSites();
   }, []);
 
-  // Get GPS location (optional - won't break if unavailable)
+  // Load weather data when date changes - exactly like single form
   useEffect(() => {
-    // Check if geolocation is available and permissions allow it
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
-      // Use a timeout to avoid hanging if permission dialog is ignored
-      const timeoutId = setTimeout(() => {
-        console.warn("GPS location request timed out");
-      }, 5000);
+    if (!sites.length) return;
+    console.log(sites, "sites");
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          clearTimeout(timeoutId);
-          setGpsLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        },
-        (error) => {
-          clearTimeout(timeoutId);
-          // Don't warn for permission denied - this is expected in many cases
-          if (error.code !== error.PERMISSION_DENIED) {
-            console.warn("GPS location not available:", error.message);
-          }
-        },
-        {
-          timeout: 5000,
-          enableHighAccuracy: false,
-          maximumAge: 300000, // 5 minutes
-        }
-      );
-    }
-  }, []);
-
-  // Auto-calculate salt usage when manual weather data changes
-  useEffect(() => {
-    if (!weatherData && manualWeather.temperature !== "") {
-      const selectedSite = sites.find((site) => site.id === selectedSiteId);
-      if (selectedSite) {
-        const baseRate = 0.1; // kg per sq ft base rate
-        const siteSize = selectedSite.size_sqft || 10000; // Default to 10k sq ft if not set
-
-        // Temperature factor: colder = more salt needed
-        const tempFactor =
-          parseFloat(manualWeather.temperature) < -10
-            ? 1.4
-            : parseFloat(manualWeather.temperature) < -5
-              ? 1.2
-              : parseFloat(manualWeather.temperature) < 0
-                ? 1.1
-                : 1.0;
-
-        // Condition factor: more salt for snow/ice conditions
-        const conditionFactor = manualWeather.conditions.includes("Snow")
-          ? 1.3
-          : manualWeather.conditions === "freezingRain"
-            ? 1.4
-            : manualWeather.conditions === "sleet"
-              ? 1.2
-              : 1.0;
-
-        // Snowfall factor: more snow = more salt
-        const snowfallFactor = 1 + parseFloat(manualWeather.snowfall) / 10; // 10cm = double the salt
-
-        const saltRecommendation =
-          baseRate * siteSize * tempFactor * conditionFactor * snowfallFactor;
-
-        // Update the form with the calculated recommendation
-        setValue("salt_used_kg", Math.round(saltRecommendation * 10) / 10);
-      }
-    }
-  }, [manualWeather, sites, selectedSiteId, weatherData, setValue]);
-
-  // Auto-fill weather data when site changes
-  useEffect(() => {
-    const autoFillWeatherData = async () => {
-      if (!selectedSiteId) {
-        console.log("No site selected, skipping weather fetch");
-        // Clear weather data when no site is selected
-        setWeatherData(null);
-        setCalculations(null);
-        setWeatherLoading(false);
-        setWeatherError(null);
-        return;
-      }
-
-      const selectedSite = sites.find((site) => site.id === selectedSiteId);
-      console.log("Selected site:", selectedSite);
-
-      if (!selectedSite?.latitude || !selectedSite?.longitude) {
-        console.log("Site missing coordinates, skipping weather fetch");
-        setWeatherData(null);
-        setCalculations(null);
-        setWeatherLoading(false);
-        setWeatherError(null);
-        return;
-      }
-
-      console.log(
-        `Fetching weather for: ${selectedSite.name} (${selectedSite.latitude}, ${selectedSite.longitude})`
-      );
+    const loadWeatherData = async () => {
       setWeatherLoading(true);
 
       try {
-        // Get weather data from our secure API endpoint
-        const weatherResponse = await fetch(
-          `/api/snow-removal/weather?lat=${selectedSite.latitude}&lon=${selectedSite.longitude}`,
-          {
-            credentials: "include",
-          }
+        const response = await fetch(
+          `/api/snow-removal/weather?date=${watchedDate}&lat=${sites[0].latitude}&lon=${sites[0].longitude}`
         );
 
-        console.log("Weather API response status:", weatherResponse.status);
-
-        if (!weatherResponse.ok) {
-          throw new Error(`Weather API error: ${weatherResponse.status}`);
+        if (response.ok) {
+          const data = await response.json();
+          setWeatherData({
+            temperature: data.temperature,
+            conditions: data.conditions,
+            snowfall: data.snowfall,
+            precipitation: data.precipitation || 0,
+            wind_speed: data.wind_speed || 0,
+            trend: data.trend,
+            forecast_confidence: data.forecast_confidence,
+            daytime_high: data.daytime_high,
+            daytime_low: data.daytime_low,
+            forecast_id: data.forecast_id,
+            isFromCache: true, // Assuming cached since no force=true
+            cacheAge: undefined, // Could be enhanced with actual cache age
+          });
         }
-
-        const weatherData = await weatherResponse.json();
-        console.log("Weather data received:", weatherData);
-        console.log("Enhanced forecast data:", {
-          temperature: weatherData.temperature,
-          high: weatherData.daytime_high,
-          low: weatherData.daytime_low,
-          forecast_id: weatherData.forecast_id,
-        });
-
-        // Transform API response to our expected format
-        const transformedWeatherData = {
-          temperature: weatherData.temperature,
-          conditions: weatherData.conditions,
-          snowfall: weatherData.snowfall, // API already returns cm, no conversion needed
-          trend: weatherData.trend,
-          forecast_confidence: weatherData.forecast_confidence,
-          // Enhanced forecast data from API
-          daytime_high: weatherData.daytime_high,
-          daytime_low: weatherData.daytime_low,
-          forecast_id: weatherData.forecast_id,
-        };
-
-        // Calculate material usage (this could be moved to an API endpoint later)
-        const calculateMaterialUsage = (weather: WeatherData, site: Site) => {
-          const baseRate = 0.1; // kg per sq ft base rate
-          const siteSize = site.size_sqft || 10000; // Default to 10k sq ft if not set
-
-          // Temperature factor: colder = more salt needed
-          const tempFactor =
-            weather.temperature < -10
-              ? 1.4
-              : weather.temperature < -5
-                ? 1.2
-                : weather.temperature < 0
-                  ? 1.1
-                  : 1.0;
-
-          // Condition factor: more salt for snow/ice conditions
-          const conditionFactor = weather.conditions.includes("Snow")
-            ? 1.3
-            : weather.conditions === "freezingRain"
-              ? 1.4
-              : weather.conditions === "sleet"
-                ? 1.2
-                : 1.0;
-
-          // Snowfall factor: more snow = more salt
-          const snowfallFactor = 1 + weather.snowfall / 10; // 10cm = double the salt
-
-          const saltRecommendation =
-            baseRate * siteSize * tempFactor * conditionFactor * snowfallFactor;
-          const costEstimate = saltRecommendation * 0.5; // $0.50 per kg estimate
-
-          return {
-            salt_recommendation_kg: Math.round(saltRecommendation * 10) / 10, // Round to 1 decimal
-            material_cost_estimate: Math.round(costEstimate * 100) / 100, // Round to 2 decimals
-            temperature_factor: tempFactor,
-            condition_factor: conditionFactor,
-          };
-        };
-
-        const calculations = calculateMaterialUsage(
-          transformedWeatherData,
-          selectedSite
-        );
-
-        setWeatherData(transformedWeatherData);
-        setCalculations(calculations);
-        setWeatherError(null); // Clear any previous errors
-
-        // Auto-fill recommended amounts
-        setValue("salt_used_kg", calculations.salt_recommendation_kg);
-
-        toast.success("Weather data loaded successfully");
       } catch (error) {
-        console.error("Failed to load weather data:", error);
-
-        // Clear weather data on error
-        setWeatherData(null);
-        setCalculations(null);
-
-        // Set error state
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Failed to load weather data";
-        setWeatherError(errorMessage);
-
-        toast.error(errorMessage, {
-          action: {
-            label: "Retry",
-            onClick: () => autoFillWeatherData(),
-          },
-        });
+        console.error("Error loading weather:", error);
       } finally {
         setWeatherLoading(false);
       }
     };
 
-    if (selectedSiteId && sites.length > 0) {
-      autoFillWeatherData();
-    }
-  }, [selectedSiteId, sites, setValue]);
+    loadWeatherData();
+  }, [sites]);
 
-  const resetFormState = () => {
-    // Reset the form to default values
-    form.reset({
-      date: new Date().toISOString().split("T")[0],
-      dispatched_for: new Date().toTimeString().slice(0, 5),
-      start_time: new Date().toTimeString().slice(0, 5),
-      is_draft: true,
-      salt_used_kg: undefined,
-      deicing_material_kg: undefined,
-      salt_alternative_kg: undefined,
-      truck: "",
-      tractor: "",
-      handwork: "",
+  // Refresh weather data function
+  const refreshWeatherData = async () => {
+    if (!watchedDate) return;
+
+    setWeatherLoading(true);
+    setWeatherData(null);
+
+    try {
+      // Use current date for weather fetch with force refresh
+      const response = await fetch(
+        `/api/snow-removal/weather?date=${watchedDate}&force=true`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setWeatherData({
+          temperature: data.temperature,
+          conditions: data.conditions,
+          snowfall: data.snowfall,
+          precipitation: data.precipitation || 0,
+          wind_speed: data.wind_speed || 0,
+          trend: data.trend,
+          forecast_confidence: data.forecast_confidence,
+          daytime_high: data.daytime_high,
+          daytime_low: data.daytime_low,
+          forecast_id: data.forecast_id,
+          isFromCache: false, // Fresh API call
+          cacheAge: 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error refreshing weather:", error);
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
+  const addSite = () => {
+    append({
+      site_id: "",
+      start_time: "",
+      finish_time: "",
+      snow_removal_method: "noAction",
+      follow_up_plans: "allClear",
+      salt_used_kg: 0,
+      deicing_material_kg: 0,
+      salt_alternative_kg: 0,
+      comments: "",
+    });
+  };
+
+  const removeSite = (index: number) => {
+    if (fields.length > 1) {
+      remove(index);
+    }
+  };
+
+  const duplicateSite = (index: number) => {
+    const siteData = getValues(`sites.${index}`);
+    append({
+      ...siteData,
+      site_id: "", // Clear site selection for duplicate
+      start_time: "",
       finish_time: "",
       comments: "",
-      site_id: "",
-      snow_removal_method: undefined,
-      follow_up_plans: undefined,
     });
-
-    // Clear additional state
-    setWeatherData(null);
-    setCalculations(null);
-    setGpsLocation(null);
-    setWeatherError(null);
-    setWeatherLoading(false);
-
-    // Reset manual weather state
-    setManualWeather({
-      temperature: "",
-      snowfall: "",
-      conditions: "clear",
-      trend: "steady",
-    });
-
-    // Force form to re-render with cleared values
-    setTimeout(() => {
-      form.trigger();
-    }, 0);
   };
 
   const onFormSubmit = async (data: FormData) => {
     setLoading(true);
+
     try {
-      // Use weatherData if available, otherwise use manualWeather
-      const weatherToUse = weatherData || {
-        temperature: parseFloat(manualWeather.temperature) || 0,
-        snowfall: parseFloat(manualWeather.snowfall) || 0,
-        conditions: manualWeather.conditions,
-        trend: manualWeather.trend,
-        daytime_high: parseFloat(manualWeather.temperature) || 0, // Use same temp as fallback
-        daytime_low: parseFloat(manualWeather.temperature) || 0, // Use same temp as fallback
-        forecast_confidence: 0.5, // Default confidence for manual data
-      };
+      // Create individual reports for each site - exactly like single form
+      const reports: CreateReportRequest[] = data.sites.map((siteData) => {
+        const site = sites.find((s) => s.id === siteData.site_id);
+        return {
+          site_id: siteData.site_id,
+          date: data.date,
+          dispatched_for: data.dispatched_for,
+          start_time: siteData.start_time,
+          finish_time: siteData.finish_time,
+          truck: data.truck,
+          tractor: data.tractor,
+          handwork: data.handwork,
+          snow_removal_method: siteData.snow_removal_method,
+          follow_up_plans: siteData.follow_up_plans,
+          salt_used_kg: siteData.salt_used_kg || 0,
+          deicing_material_kg: siteData.deicing_material_kg || 0,
+          salt_alternative_kg: siteData.salt_alternative_kg || 0,
+          comments: siteData.comments,
+          is_draft: data.is_draft,
 
-      const reportData: CreateReportRequest = {
-        ...data,
-        // GPS coordinates as separate fields (matching database schema)
-        gps_latitude: gpsLocation?.latitude,
-        gps_longitude: gpsLocation?.longitude,
-        gps_accuracy: gpsLocation ? 10 : undefined, // 10 meters accuracy
-        // Include current weather data from form to ensure consistency
-        air_temperature: weatherToUse.temperature,
-        snowfall_accumulation_cm: weatherToUse.snowfall,
-        precipitation_type: weatherToUse.conditions,
-        temperature_trend: weatherToUse.trend,
-        conditions_upon_arrival: weatherToUse.conditions,
-        // Enhanced forecast data
-        daytime_high: weatherToUse.daytime_high || weatherToUse.temperature,
-        daytime_low: weatherToUse.daytime_low || weatherToUse.temperature,
-        weather_forecast_id: weatherData?.forecast_id || undefined,
-        // Auto-filled fields
-        operator: "",
-        site_name: "",
-        salt_used_kg: data.salt_used_kg || 0,
-        deicing_material_kg: data.deicing_material_kg || 0,
-        salt_alternative_kg: data.salt_alternative_kg || 0,
-        // Include weather data for storage
-        weather_data: {
-          api_source: weatherData ? "secure_endpoint" : "manual_input",
-          temperature: weatherToUse.temperature,
-          precipitation: 0,
-          wind_speed: 0,
-          conditions: weatherToUse.conditions,
-          forecast_confidence: weatherToUse.forecast_confidence || 0.5,
-        },
-        // Include calculations
-        calculations: {
-          salt_recommendation_kg:
-            calculations?.salt_recommendation_kg ||
-            Math.max(10, weatherToUse.temperature < 0 ? 20 : 10),
-          material_cost_estimate:
-            calculations?.material_cost_estimate ||
-            Math.max(5, weatherToUse.temperature < 0 ? 10 : 5),
-          temperature_factor:
-            calculations?.temperature_factor ||
-            (weatherToUse.temperature < 0 ? 1.2 : 1.0),
-          condition_factor:
-            calculations?.condition_factor ||
-            (weatherToUse.conditions.includes("Snow") ? 1.3 : 1.0),
-          cost_per_kg: 0.5,
-        },
-      };
+          // Auto-filled fields from weather data (like single form)
+          site_name: site?.name || "",
+          operator: "", // Will be filled by API
+          conditions_upon_arrival: weatherData?.conditions || "clear",
+          daytime_high: weatherData?.daytime_high || 0,
+          daytime_low: weatherData?.daytime_low || 0,
+          weather_forecast_id: weatherData?.forecast_id,
+          air_temperature: weatherData?.temperature || 0,
+          temperature_trend: weatherData?.trend || "steady",
+          snowfall_accumulation_cm: weatherData?.snowfall || 0,
+          precipitation_type: weatherData?.conditions || "clear",
+          submitted_at: data.is_draft ? undefined : new Date().toISOString(),
+        };
+      });
 
-      if (onSubmit) {
-        try {
-          await onSubmit(reportData);
-          // Always clear form after successful submission via callback
-          resetFormState();
-          toast.success(
-            data.is_draft
-              ? "Report saved as draft"
-              : "Report submitted successfully"
-          );
-        } catch (error) {
-          console.error("Error in onSubmit callback:", error);
-          toast.error("Failed to save report");
-        }
-      } else {
-        const response = await fetch("/api/snow-removal/reports", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(reportData),
-        });
-
-        if (response.ok) {
-          // const result = await response.json();
-          toast.success(
-            data.is_draft
-              ? "Report saved as draft"
-              : "Report submitted successfully"
-          );
-          // Clear form after successful API submission
-          resetFormState();
-        } else {
-          const error = await response.json();
-          toast.error(error.message || "Failed to submit report");
-        }
-      }
-    } catch {
-      toast.error("Error submitting report");
+      await onSubmit?.(reports);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast.error("Error submitting form");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveDraft = () => {
+  const submitAsDraft = () => {
     setValue("is_draft", true);
     handleSubmit(onFormSubmit)();
   };
 
-  const handleSubmitFinal = () => {
+  const submitFinal = () => {
     setValue("is_draft", false);
     handleSubmit(onFormSubmit)();
   };
 
+  if (sitesLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <div className="grid gap-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <form
-      onSubmit={handleSubmit(onFormSubmit)}
-      className={`space-y-6 ${className}`}
-    >
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CloudSnow className="h-5 w-5" />
-            Snow Removal Report
-          </CardTitle>
-          <CardDescription>
-            Complete your snow removal compliance report. Weather data and
-            material calculations are automated.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      {/* General Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            General Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="date">Date *</Label>
-              <Controller
-                name="date"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    type="date"
-                    id="date"
-                    className={errors.date ? "border-red-500" : ""}
-                  />
-                )}
-              />
-              {errors.date && (
-                <p className="text-sm text-red-500">{errors.date.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dispatched_for">Dispatched For *</Label>
-              <Controller
-                name="dispatched_for"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    type="time"
-                    id="dispatched_for"
-                    className={errors.dispatched_for ? "border-red-500" : ""}
-                  />
-                )}
-              />
-              {errors.dispatched_for && (
-                <p className="text-sm text-red-500">
-                  {errors.dispatched_for.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="truck">Truck</Label>
-              <Controller
-                name="truck"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    value={field.value || ""}
-                    id="truck"
-                    placeholder="Truck identifier"
-                  />
-                )}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tractor">Tractor</Label>
-              <Controller
-                name="tractor"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    value={field.value || ""}
-                    id="tractor"
-                    placeholder="Tractor identifier"
-                  />
-                )}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="handwork">Handwork</Label>
-              <Controller
-                name="handwork"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    value={field.value || ""}
-                    id="handwork"
-                    placeholder="Manual work details"
-                  />
-                )}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Site Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Site Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="site_id">Site *</Label>
-              {sitesLoading ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
-                <Controller
-                  name="site_id"
-                  control={control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger
-                        className={`w-full ${errors.site_id ? "border-red-500" : ""}`}
-                      >
-                        <SelectValue placeholder="Select a site" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sites.map((site) => (
-                          <SelectItem key={site.id} value={site.id}>
-                            <div className="flex items-center gap-2">
-                              <span>{site.name}</span>
-                              <Badge
-                                variant={
-                                  site.priority === "high"
-                                    ? "destructive"
-                                    : "secondary"
-                                }
-                              >
-                                {site.priority}
-                              </Badge>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              )}
-              {errors.site_id && (
-                <p className="text-sm text-red-500">{errors.site_id.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="start_time">Start Time *</Label>
-              <Controller
-                name="start_time"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    type="time"
-                    id="start_time"
-                    className={errors.start_time ? "border-red-500" : ""}
-                  />
-                )}
-              />
-              {errors.start_time && (
-                <p className="text-sm text-red-500">
-                  {errors.start_time.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="finish_time">Finish Time</Label>
-              <Controller
-                name="finish_time"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} type="time" id="finish_time" />
-                )}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Weather Information */}
-      {weatherLoading ? (
+    <form onSubmit={handleSubmit(onFormSubmit)} className={className}>
+      <div className="space-y-6">
+        {/* Shared Information Section - exactly like single form */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Thermometer className="h-4 w-4" />
-              Weather Conditions
-              <Badge variant="secondary" className="animate-pulse">
-                Fetching weather data...
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center space-y-2">
-                <Skeleton className="h-4 w-20 mx-auto" />
-                <Skeleton className="h-8 w-16 mx-auto" />
-              </div>
-              <div className="text-center space-y-2">
-                <Skeleton className="h-4 w-16 mx-auto" />
-                <Skeleton className="h-6 w-24 mx-auto" />
-              </div>
-              <div className="text-center space-y-2">
-                <Skeleton className="h-4 w-20 mx-auto" />
-                <Skeleton className="h-6 w-20 mx-auto" />
-              </div>
-              <div className="text-center space-y-2">
-                <Skeleton className="h-4 w-16 mx-auto" />
-                <Skeleton className="h-6 w-12 mx-auto" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : weatherError ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Thermometer className="h-4 w-4" />
-              Weather Conditions
-              <Badge variant="outline">Manual Input</Badge>
+              <Clock className="h-5 w-5" />
+              General Information
             </CardTitle>
             <CardDescription>
-              Auto-fetch failed. Please enter weather data manually.
+              Information that applies to all sites visited during this shift
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {weatherError} - Using manual input mode.
-              </AlertDescription>
-            </Alert>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="manual-temperature">Temperature (°C) *</Label>
+                <Label htmlFor="date">Date</Label>
                 <Input
-                  id="manual-temperature"
-                  type="number"
-                  step="0.1"
-                  value={manualWeather.temperature}
-                  onChange={(e) =>
-                    setManualWeather((prev) => ({
-                      ...prev,
-                      temperature: e.target.value,
-                    }))
-                  }
-                  placeholder="e.g., -5.5"
+                  id="date"
+                  type="date"
+                  {...register("date")}
+                  className={errors.date ? "border-red-500" : ""}
                 />
+                {errors.date && (
+                  <p className="text-sm text-red-500">{errors.date.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="manual-snowfall">Snowfall (cm)</Label>
+                <Label htmlFor="dispatched_for">Dispatched For</Label>
                 <Input
-                  id="manual-snowfall"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={manualWeather.snowfall}
-                  onChange={(e) =>
-                    setManualWeather((prev) => ({
-                      ...prev,
-                      snowfall: e.target.value,
-                    }))
-                  }
-                  placeholder="e.g., 2.5"
+                  id="dispatched_for"
+                  type="time"
+                  {...register("dispatched_for")}
+                  className={errors.dispatched_for ? "border-red-500" : ""}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="manual-conditions">Weather Conditions *</Label>
-                <Select
-                  value={manualWeather.conditions}
-                  onValueChange={(value: WeatherCondition) =>
-                    setManualWeather((prev) => ({ ...prev, conditions: value }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="clear">Clear</SelectItem>
-                    <SelectItem value="rain">Rain</SelectItem>
-                    <SelectItem value="lightSnow">Light Snow</SelectItem>
-                    <SelectItem value="heavySnow">Heavy Snow</SelectItem>
-                    <SelectItem value="driftingSnow">Drifting Snow</SelectItem>
-                    <SelectItem value="freezingRain">Freezing Rain</SelectItem>
-                    <SelectItem value="sleet">Sleet</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="manual-trend">Temperature Trend</Label>
-                <Select
-                  value={manualWeather.trend}
-                  onValueChange={(value: WeatherTrend) =>
-                    setManualWeather((prev) => ({ ...prev, trend: value }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="up">Up</SelectItem>
-                    <SelectItem value="down">Down</SelectItem>
-                    <SelectItem value="steady">Steady</SelectItem>
-                  </SelectContent>
-                </Select>
+                {errors.dispatched_for && (
+                  <p className="text-sm text-red-500">
+                    {errors.dispatched_for.message}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="truck">Truck</Label>
+                <Input
+                  id="truck"
+                  {...register("truck")}
+                  placeholder="Truck number/ID"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tractor">Tractor</Label>
+                <Input
+                  id="tractor"
+                  {...register("tractor")}
+                  placeholder="Tractor number/ID"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="handwork">Hand Work</Label>
+                <Input
+                  id="handwork"
+                  {...register("handwork")}
+                  placeholder="Hand work details"
+                />
+              </div>
+            </div>
+
+            {/* Enhanced Weather Display */}
+            <EnhancedWeatherDisplay
+              weatherData={weatherData}
+              isLoading={weatherLoading}
+              isFromCache={weatherData?.isFromCache}
+              cacheAge={weatherData?.cacheAge}
+              onRefresh={refreshWeatherData}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Sites Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Sites Visited ({fields.length})
+                </CardTitle>
+                <CardDescription>
+                  Add details for each site visited during this shift
+                </CardDescription>
+              </div>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  const selectedSite = sites.find(
-                    (site) => site.id === selectedSiteId
-                  );
-                  if (selectedSite?.latitude && selectedSite?.longitude) {
-                    setWeatherError(null);
-                    // Trigger the weather fetch by calling the useEffect dependency
-                    setValue("site_id", selectedSiteId);
-                  }
-                }}
-                className="text-sm"
+                size="sm"
+                onClick={addSite}
+                className="flex items-center gap-2"
               >
-                Retry Auto-Fetch
+                <Plus className="h-4 w-4" />
+                Add Site
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      ) : weatherData ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Thermometer className="h-4 w-4" />
-              Weather Conditions
-              <Badge variant="secondary">Auto-filled</Badge>
-            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Current Temp</p>
-                <p className="text-2xl font-bold">
-                  {weatherData.temperature}°C
-                </p>
+          <CardContent className="space-y-6">
+            {fields.map((field, index) => (
+              <div key={field.id} className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-semibold">
+                    Site {index + 1}
+                    {sites.find((s) => s.id === watch(`sites.${index}.site_id`))
+                      ?.name && (
+                      <span className="text-sm font-normal text-muted-foreground ml-2">
+                        -{" "}
+                        {
+                          sites.find(
+                            (s) => s.id === watch(`sites.${index}.site_id`)
+                          )?.name
+                        }
+                      </span>
+                    )}
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => duplicateSite(index)}
+                      className="flex items-center gap-1"
+                    >
+                      <Copy className="h-3 w-3" />
+                      Copy
+                    </Button>
+                    {fields.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeSite(index)}
+                        className="flex items-center gap-1 text-red-600"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 p-4 border rounded-lg">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Site</Label>
+                      <Controller
+                        name={`sites.${index}.site_id`}
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
+                            <SelectTrigger
+                              className={
+                                errors.sites?.[index]?.site_id
+                                  ? "border-red-500"
+                                  : ""
+                              }
+                            >
+                              <SelectValue placeholder="Select a site" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {sites
+                                .filter(
+                                  (site) =>
+                                    // Allow current selection or sites not already selected
+                                    field.value === site.id ||
+                                    !watch("sites").some(
+                                      (s, i) =>
+                                        i !== index && s.site_id === site.id
+                                    )
+                                )
+                                .map((site) => (
+                                  <SelectItem key={site.id} value={site.id}>
+                                    <div className="flex items-center justify-between w-full">
+                                      <span>{site.name}</span>
+                                      <Badge variant="outline" className="ml-2">
+                                        {site.priority}
+                                      </Badge>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      {errors.sites?.[index]?.site_id && (
+                        <p className="text-sm text-red-500">
+                          {errors.sites[index]?.site_id?.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Snow Removal Method</Label>
+                      <Controller
+                        name={`sites.${index}.snow_removal_method`}
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="plow">Plow</SelectItem>
+                              <SelectItem value="shovel">Shovel</SelectItem>
+                              <SelectItem value="salt">Salt Only</SelectItem>
+                              <SelectItem value="combination">
+                                Combination
+                              </SelectItem>
+                              <SelectItem value="noAction">
+                                No Action
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label>Start Time</Label>
+                      <Input
+                        type="time"
+                        {...register(`sites.${index}.start_time`)}
+                        className={
+                          errors.sites?.[index]?.start_time
+                            ? "border-red-500"
+                            : ""
+                        }
+                      />
+                      {errors.sites?.[index]?.start_time && (
+                        <p className="text-sm text-red-500">
+                          {errors.sites[index]?.start_time?.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Finish Time</Label>
+                      <Input
+                        type="time"
+                        {...register(`sites.${index}.finish_time`)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Follow-up Plans</Label>
+                      <Controller
+                        name={`sites.${index}.follow_up_plans`}
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="allClear">
+                                All Clear
+                              </SelectItem>
+                              <SelectItem value="activeSnowfall">
+                                Active Snowfall
+                              </SelectItem>
+                              <SelectItem value="monitorConditions">
+                                Monitor Conditions
+                              </SelectItem>
+                              <SelectItem value="returnInHour">
+                                Return in 1 Hour
+                              </SelectItem>
+                              <SelectItem value="callSupervisor">
+                                Call Supervisor
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label>Salt Used (kg)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        {...register(`sites.${index}.salt_used_kg`, {
+                          valueAsNumber: true,
+                        })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Deicing Material (kg)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        {...register(`sites.${index}.deicing_material_kg`, {
+                          valueAsNumber: true,
+                        })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Salt Alternative (kg)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        {...register(`sites.${index}.salt_alternative_kg`, {
+                          valueAsNumber: true,
+                        })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Comments</Label>
+                    <Textarea
+                      {...register(`sites.${index}.comments`)}
+                      placeholder="Additional notes for this site..."
+                      rows={2}
+                    />
+                  </div>
+                </div>
+
+                {index < fields.length - 1 && <Separator />}
               </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">High / Low</p>
-                <p className="text-lg font-semibold">
-                  {weatherData.daytime_high?.toFixed(1)}° /{" "}
-                  {weatherData.daytime_low?.toFixed(1)}°
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Conditions</p>
-                <WeatherConditionBadge condition={weatherData.conditions} />
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Snowfall</p>
-                <p className="text-lg font-semibold">
-                  {weatherData.snowfall} cm
-                </p>
-              </div>
-            </div>
+            ))}
           </CardContent>
         </Card>
-      ) : selectedSiteId ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Thermometer className="h-4 w-4" />
-              Weather Conditions
-              <Badge variant="outline">Manual Input</Badge>
-            </CardTitle>
-            <CardDescription>
-              Enter weather conditions for this report.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="manual-temperature-fallback">
-                  Temperature (°C) *
-                </Label>
-                <Input
-                  id="manual-temperature-fallback"
-                  type="number"
-                  step="0.1"
-                  value={manualWeather.temperature}
-                  onChange={(e) =>
-                    setManualWeather((prev) => ({
-                      ...prev,
-                      temperature: e.target.value,
-                    }))
-                  }
-                  placeholder="e.g., -5.5"
-                />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="manual-snowfall-fallback">Snowfall (cm)</Label>
-                <Input
-                  id="manual-snowfall-fallback"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={manualWeather.snowfall}
-                  onChange={(e) =>
-                    setManualWeather((prev) => ({
-                      ...prev,
-                      snowfall: e.target.value,
-                    }))
-                  }
-                  placeholder="e.g., 2.5"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="manual-conditions-fallback">
-                  Weather Conditions *
-                </Label>
-                <Select
-                  value={manualWeather.conditions}
-                  onValueChange={(value: WeatherCondition) =>
-                    setManualWeather((prev) => ({ ...prev, conditions: value }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="clear">Clear</SelectItem>
-                    <SelectItem value="rain">Rain</SelectItem>
-                    <SelectItem value="lightSnow">Light Snow</SelectItem>
-                    <SelectItem value="heavySnow">Heavy Snow</SelectItem>
-                    <SelectItem value="driftingSnow">Drifting Snow</SelectItem>
-                    <SelectItem value="freezingRain">Freezing Rain</SelectItem>
-                    <SelectItem value="sleet">Sleet</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="manual-trend-fallback">Temperature Trend</Label>
-                <Select
-                  value={manualWeather.trend}
-                  onValueChange={(value: WeatherTrend) =>
-                    setManualWeather((prev) => ({ ...prev, trend: value }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="up">Up</SelectItem>
-                    <SelectItem value="down">Down</SelectItem>
-                    <SelectItem value="steady">Steady</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {/* Work Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Work Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="snow_removal_method">Snow Removal Method *</Label>
-              <Controller
-                name="snow_removal_method"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger
-                      className={`w-full ${
-                        errors.snow_removal_method ? "border-red-500" : ""
-                      }`}
-                    >
-                      <SelectValue placeholder="Select method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="plow">Plow</SelectItem>
-                      <SelectItem value="shovel">Shovel</SelectItem>
-                      <SelectItem value="salt">Salt Only</SelectItem>
-                      <SelectItem value="combination">Combination</SelectItem>
-                      <SelectItem value="noAction">No Action</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.snow_removal_method && (
-                <p className="text-sm text-red-500">
-                  {errors.snow_removal_method.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="follow_up_plans">Follow-up Plans *</Label>
-              <Controller
-                name="follow_up_plans"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger
-                      className={`w-full ${errors.follow_up_plans ? "border-red-500" : ""}`}
-                    >
-                      <SelectValue placeholder="Select follow-up plan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="allClear">
-                        All Clear, will monitor
-                      </SelectItem>
-                      <SelectItem value="activeSnowfall">
-                        Active Snowfall, will return for additional clearance at
-                        1cm of accumulation
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.follow_up_plans && (
-                <p className="text-sm text-red-500">
-                  {errors.follow_up_plans.message}
-                </p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Material Usage */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-4 w-4" />
-            Material Usage
-            {weatherLoading && (
-              <Badge variant="secondary" className="animate-pulse">
-                Calculating...
-              </Badge>
-            )}
-            {calculations && !weatherLoading && (
-              <Badge variant="secondary">Auto-calculated</Badge>
-            )}
-          </CardTitle>
-          {calculations && !weatherLoading && (
-            <CardDescription>
-              Recommended amounts based on site size, weather conditions, and
-              temperature.
-            </CardDescription>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {weatherLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            </div>
-          ) : (
-            <>
-              {calculations && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Recommended salt usage:{" "}
-                    {calculations.salt_recommendation_kg} kg (Estimated cost: $
-                    {calculations.material_cost_estimate})
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="salt_used_kg">Salt Used (kg)</Label>
-                  <Controller
-                    name="salt_used_kg"
-                    control={control}
-                    render={({ field: { onChange, value, ...field } }) => (
-                      <Input
-                        {...field}
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={
-                          value !== undefined && value !== null
-                            ? String(value)
-                            : ""
-                        }
-                        onChange={(e) =>
-                          onChange(
-                            e.target.value
-                              ? parseFloat(e.target.value)
-                              : undefined
-                          )
-                        }
-                        id="salt_used_kg"
-                      />
-                    )}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="deicing_material_kg">
-                    Deicing Material (kg)
-                  </Label>
-                  <Controller
-                    name="deicing_material_kg"
-                    control={control}
-                    render={({ field: { onChange, value, ...field } }) => (
-                      <Input
-                        {...field}
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={
-                          value !== undefined && value !== null
-                            ? String(value)
-                            : ""
-                        }
-                        onChange={(e) =>
-                          onChange(
-                            e.target.value
-                              ? parseFloat(e.target.value)
-                              : undefined
-                          )
-                        }
-                        id="deicing_material_kg"
-                      />
-                    )}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="salt_alternative_kg">
-                    Salt Alternative (kg)
-                  </Label>
-                  <Controller
-                    name="salt_alternative_kg"
-                    control={control}
-                    render={({ field: { onChange, value, ...field } }) => (
-                      <Input
-                        {...field}
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={
-                          value !== undefined && value !== null
-                            ? String(value)
-                            : ""
-                        }
-                        onChange={(e) =>
-                          onChange(
-                            e.target.value
-                              ? parseFloat(e.target.value)
-                              : undefined
-                          )
-                        }
-                        id="salt_alternative_kg"
-                      />
-                    )}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Comments */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Comments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label htmlFor="comments">Additional Comments</Label>
-            <Controller
-              name="comments"
-              control={control}
-              render={({ field }) => (
-                <Textarea
-                  {...field}
-                  id="comments"
-                  placeholder="Any additional observations, issues, or notes..."
-                  className="min-h-[100px]"
-                />
-              )}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleSaveDraft}
-          disabled={loading || !isValid}
-          className="flex items-center gap-2"
-        >
-          <Save className="h-4 w-4" />
-          Save Draft
-        </Button>
-        <Button
-          type="button"
-          onClick={handleSubmitFinal}
-          disabled={loading || !isValid}
-          className="flex items-center gap-2"
-        >
-          <Send className="h-4 w-4" />
-          Submit Report
-        </Button>
+        {/* Submit Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={submitAsDraft}
+            disabled={loading || isSubmitting}
+            className="flex items-center gap-2"
+          >
+            <Save className="h-4 w-4" />
+            Save as Draft
+          </Button>
+          <Button
+            type="button"
+            onClick={submitFinal}
+            disabled={loading || isSubmitting}
+            className="flex items-center gap-2"
+          >
+            <Send className="h-4 w-4" />
+            Submit Report
+          </Button>
+        </div>
       </div>
     </form>
   );

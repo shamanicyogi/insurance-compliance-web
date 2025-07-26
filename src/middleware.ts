@@ -62,7 +62,6 @@ export default withAuth(
       pathname.startsWith("/api/snow-removal/companies/create");
 
     // MAYBE TOKEN DEOSN"T HAVE!
-    console.log(token, "token");
 
     // TODO - block onboarding - if they have an employee record, redirect to dashboard
 

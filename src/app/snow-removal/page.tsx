@@ -28,7 +28,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { SnowRemovalForm } from "@/components/snow-removal-form";
-import { MultiSiteSnowRemovalForm } from "@/components/multi-site-snow-removal-form";
 import { DraftReportsList } from "@/components/draft-reports-list";
 import { AdminReportsList } from "@/components/admin-reports-list";
 import { AppLayout } from "@/components/app-layout";
@@ -48,39 +47,30 @@ interface ReportsResponse {
 
 const StatusBadge = ({
   isDraft,
-  submittedAt,
+  isArchived,
 }: {
   isDraft: boolean;
-  submittedAt?: string;
+  isArchived: boolean;
 }) => {
+  if (isArchived) {
+    return <Badge variant="secondary">Archived</Badge>;
+  }
   if (isDraft) {
-    return <Badge variant="secondary">Draft</Badge>;
+    return <Badge variant="outline">Draft</Badge>;
   }
-  if (submittedAt) {
-    return <Badge variant="default">Submitted</Badge>;
-  }
-  return <Badge variant="outline">Unknown</Badge>;
-};
-
-const PriorityBadge = ({ priority }: { priority: string }) => {
-  const variants: Record<
-    string,
-    "default" | "secondary" | "destructive" | "outline"
-  > = {
-    high: "destructive",
-    medium: "secondary",
-    low: "outline",
-  };
-  return <Badge variant={variants[priority] || "outline"}>{priority}</Badge>;
+  return <Badge variant="default">Submitted</Badge>;
 };
 
 export default function SnowRemovalPage() {
-  const { status } = useSession();
-  const { canExportData } = useCompanyPermissions();
+  const { data: session } = useSession();
+  const permissions = useCompanyPermissions();
+
+  const canCreateReports = permissions?.canCreateReports ?? false;
+  const canEditReports = permissions?.canEditOwnReports ?? false;
+  const canExportData = permissions?.canExportData ?? false;
 
   // Navigation state
   const [activeTab, setActiveTab] = useState("reports");
-  const [isMultiSiteMode, setIsMultiSiteMode] = useState(false);
 
   // Filter states
   const [dateFilter, setDateFilter] = useState("");
@@ -90,162 +80,93 @@ export default function SnowRemovalPage() {
   const [reports, setReports] = useState<ReportsResponse["reports"]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reportsLoading, setReportsLoading] = useState(true);
-  const [editingReport, setEditingReport] = useState<
-    ReportsResponse["reports"][0] | null
-  >(null);
+
+  // Editing state
+  const [editingReport, setEditingReport] = useState<SnowRemovalReport | null>(
+    null
+  );
+
+  // Counter for forcing draft list refresh
   const [refreshDrafts, setRefreshDrafts] = useState(0);
 
-  // Function to reload reports from API
+  // Load initial data
+  useEffect(() => {
+    reloadReports();
+  }, []);
+
   const reloadReports = async () => {
+    setLoading(true);
     try {
-      const response = await fetch("/api/snow-removal/reports");
-      if (response.ok) {
-        const data = await response.json();
-        setReports(data.reports);
+      const [reportsResponse, sitesResponse] = await Promise.all([
+        fetch("/api/snow-removal/reports"),
+        fetch("/api/snow-removal/sites"),
+      ]);
+
+      if (reportsResponse.ok) {
+        const reportsData = await reportsResponse.json();
+        setReports(reportsData.reports || []);
+      }
+
+      if (sitesResponse.ok) {
+        const sitesData = await sitesResponse.json();
+        setSites(sitesData.sites || []);
       }
     } catch (error) {
-      console.error("Error reloading reports:", error);
-      toast.error("Failed to reload reports");
+      console.error("Error loading data:", error);
+      toast.error("Failed to load data");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Redirect if not authenticated
-  // useEffect(() => {
-  //   if (status === "unauthenticated") {
-  //     router.push("/login");
-  //   }
-  // }, [status, router]);
-
-  // Load data - middleware ensures user has employee record
-  useEffect(() => {
-    const loadData = async () => {
-      if (status !== "authenticated") {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        // Load sites and reports in parallel
-        const [sitesResponse, reportsResponse] = await Promise.all([
-          fetch("/api/snow-removal/sites"),
-          fetch("/api/snow-removal/reports"),
-        ]);
-
-        if (sitesResponse.ok) {
-          const sitesData = await sitesResponse.json();
-          setSites(sitesData.sites);
-        }
-
-        if (reportsResponse.ok) {
-          const reportsData = await reportsResponse.json();
-          setReports(reportsData.reports);
-        }
-      } catch (error) {
-        console.error("Error loading data:", error);
-        toast.error("Failed to load data");
-      } finally {
-        setLoading(false);
-        setReportsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [status]);
-
-  // Filter reports based on selected filters
-  const filteredReports = reports.filter((report) => {
-    if (dateFilter && !report.date.startsWith(dateFilter)) return false;
-    if (siteFilter && siteFilter !== "all" && report.site_id !== siteFilter)
-      return false;
-    if (statusFilter === "draft" && !report.is_draft) return false;
-    if (statusFilter === "submitted" && report.is_draft) return false;
-    return true;
-  });
-
-  const handleNewReport = () => {
-    setActiveTab("create");
-  };
-
-  const handleReportSubmitted = async (reportData: CreateReportRequest) => {
+  const handleReportSubmitted = async (reports: CreateReportRequest[]) => {
     try {
-      let response;
-
-      if (editingReport) {
-        // Update existing draft
-        response = await fetch(
+      // For editing single reports, handle differently
+      if (editingReport && reports.length === 1) {
+        const response = await fetch(
           `/api/snow-removal/reports/${editingReport.id}`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(reportData),
+            body: JSON.stringify(reports[0]),
           }
         );
-      } else {
-        // Create new report
-        response = await fetch("/api/snow-removal/reports", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(reportData),
-        });
-      }
 
-      if (response.ok) {
-        toast.success(
-          reportData.is_draft
-            ? "Report saved as draft"
-            : "Report submitted successfully"
-        );
-
-        // If not a draft, go to reports tab, otherwise stay on current tab
-        if (!reportData.is_draft) {
-          setActiveTab("reports");
+        if (response.ok) {
+          toast.success(
+            `Report updated as ${reports[0].is_draft ? "draft" : "submitted"}`
+          );
+          setEditingReport(null);
+        } else {
+          const error = await response.json();
+          toast.error(error.message || "Failed to update report");
         }
-        setEditingReport(null); // Clear editing state
-
-        // Reload reports and trigger draft refresh
-        await reloadReports();
-        setRefreshDrafts((prev) => prev + 1);
       } else {
-        const error = await response.json();
-        toast.error(error.message || "Failed to save report");
-      }
-    } catch (error) {
-      console.error("Error saving report:", error);
-      toast.error("Error saving report");
-    }
-  };
-
-  // TODO - remove setIsMultiSiteMode
-
-  const handleMultiSiteReportSubmitted = async (
-    reports: CreateReportRequest[]
-  ) => {
-    try {
-      // Submit each report individually using the existing single report API
-      const promises = reports.map((reportData) =>
-        fetch("/api/snow-removal/reports", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(reportData),
-        })
-      );
-
-      const responses = await Promise.all(promises);
-
-      const successful = responses.filter((r) => r.ok).length;
-      const failed = responses.length - successful;
-
-      if (successful > 0) {
-        toast.success(
-          reports[0]?.is_draft
-            ? `Saved ${successful} report(s) as drafts`
-            : `Submitted ${successful} report(s) successfully`
+        // Submit each report individually using the existing single report API
+        const promises = reports.map((reportData) =>
+          fetch("/api/snow-removal/reports", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reportData),
+          })
         );
-      }
 
-      if (failed > 0) {
-        toast.error(`Failed to save ${failed} report(s)`);
+        const responses = await Promise.all(promises);
+
+        const successful = responses.filter((r) => r.ok).length;
+        const failed = responses.length - successful;
+
+        if (successful > 0) {
+          toast.success(
+            reports[0]?.is_draft
+              ? `Saved ${successful} report(s) as drafts`
+              : `Submitted ${successful} report(s) successfully`
+          );
+        }
+
+        if (failed > 0) {
+          toast.error(`Failed to save ${failed} report(s)`);
+        }
       }
 
       // If not a draft, go to reports tab, otherwise stay on current tab
@@ -257,21 +178,51 @@ export default function SnowRemovalPage() {
       await reloadReports();
       setRefreshDrafts((prev) => prev + 1);
     } catch (error) {
-      console.error("Error saving multi-site reports:", error);
+      console.error("Error saving reports:", error);
       toast.error("Error saving reports");
     }
   };
 
-  const handleEditDraft = (report: ReportsResponse["reports"][0]) => {
+  const handleEditReport = (report: SnowRemovalReport) => {
     setEditingReport(report);
     setActiveTab("create");
   };
 
   const handleCancelEdit = () => {
     setEditingReport(null);
-    // Trigger draft refresh to reload the list
-    setRefreshDrafts((prev) => prev + 1);
   };
+
+  const handleDeleteReport = async (reportId: string) => {
+    try {
+      const response = await fetch(`/api/snow-removal/reports/${reportId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("Report deleted successfully");
+        await reloadReports();
+        setRefreshDrafts((prev) => prev + 1);
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Failed to delete report");
+      }
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      toast.error("Error deleting report");
+    }
+  };
+
+  // Filter reports based on current filters
+  const filteredReports = reports.filter((report) => {
+    const matchesDate = !dateFilter || report.date === dateFilter;
+    const matchesSite = siteFilter === "all" || report.site_id === siteFilter;
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "draft" && report.is_draft) ||
+      (statusFilter === "submitted" && !report.is_draft);
+
+    return matchesDate && matchesSite && matchesStatus;
+  });
 
   const clearFilters = () => {
     setDateFilter("");
@@ -279,159 +230,40 @@ export default function SnowRemovalPage() {
     setStatusFilter("all");
   };
 
-  if (status === "loading" || loading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-        </div>
-      </div>
-    );
+  if (!session) {
+    return <div>Please log in to access snow removal reports.</div>;
   }
-
-  // Middleware handles auth and employee check redirects
 
   return (
     <AppLayout>
-      <div className="space-y-4 sm:space-y-6 p-2 sm:p-0">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight">
               Snow Removal Reports
             </h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Manage your snow removal compliance reports and track site
-              activities.
+            <p className="text-muted-foreground">
+              Manage your snow removal operations and reports
             </p>
           </div>
-          <Button
-            onClick={handleNewReport}
-            className="flex items-center gap-2 text-sm"
-          >
-            <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">New Report</span>
-            <span className="sm:hidden">New</span>
-          </Button>
         </div>
 
-        {/* Quick Stats */}
-        {!reportsLoading && (
-          <div className="grid gap-2 sm:gap-4 grid-cols-3">
-            <Card className="p-3 sm:p-4">
-              <div className="flex flex-col items-center space-y-1 sm:space-y-2">
-                <div className="flex items-center space-x-1 sm:space-x-2">
-                  <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span className="text-xs sm:text-sm font-medium text-center">
-                    Total
-                  </span>
-                </div>
-                <div className="text-xl sm:text-2xl font-bold">
-                  {reports.length}
-                </div>
-                <p className="text-xs text-muted-foreground text-center hidden sm:block">
-                  {reports.filter((r) => !r.is_draft).length} submitted
-                </p>
-              </div>
-            </Card>
-
-            <Card className="p-3 sm:p-4">
-              <div className="flex flex-col items-center space-y-1 sm:space-y-2">
-                <div className="flex items-center space-x-1 sm:space-x-2">
-                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span className="text-xs sm:text-sm font-medium text-center">
-                    Drafts
-                  </span>
-                </div>
-                <div className="text-xl sm:text-2xl font-bold">
-                  {reports.filter((r) => r.is_draft).length}
-                </div>
-                <p className="text-xs text-muted-foreground text-center hidden sm:block">
-                  Pending submission
-                </p>
-              </div>
-            </Card>
-
-            <Card className="p-3 sm:p-4">
-              <div className="flex flex-col items-center space-y-1 sm:space-y-2">
-                <div className="flex items-center space-x-1 sm:space-x-2">
-                  <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-                  <span className="text-xs sm:text-sm font-medium text-center">
-                    Sites
-                  </span>
-                </div>
-                <div className="text-xl sm:text-2xl font-bold">
-                  {sites.length}
-                </div>
-                <p className="text-xs text-muted-foreground text-center hidden sm:block">
-                  Active locations
-                </p>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* Main Content */}
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-4"
-        >
-          <TabsList className="w-full justify-start h-auto p-1">
-            <TabsTrigger
-              value="reports"
-              className="flex items-center gap-2 px-3 py-2"
-            >
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Reports</span>
-              <span className="sm:hidden">All</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="drafts"
-              className="flex items-center gap-2 px-3 py-2"
-            >
-              <Clock className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                Drafts ({reports.filter((r) => r.is_draft).length})
-              </span>
-              <span className="sm:hidden">
-                Draft ({reports.filter((r) => r.is_draft).length})
-              </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="create"
-              className="flex items-center gap-2 px-3 py-2"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                {editingReport ? "Edit Report" : "Create Report"}
-              </span>
-              <span className="sm:hidden">
-                {editingReport ? "Edit" : "New"}
-              </span>
-            </TabsTrigger>
-            {canExportData && (
-              <TabsTrigger
-                value="admin"
-                className="flex items-center gap-2 px-3 py-2"
-              >
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Admin Reports</span>
-                <span className="sm:hidden">Admin</span>
-              </TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="reports">All Reports</TabsTrigger>
+            {canCreateReports && (
+              <TabsTrigger value="create">Create Report</TabsTrigger>
             )}
+            {canExportData && <TabsTrigger value="admin">Admin</TabsTrigger>}
           </TabsList>
 
-          {/* Reports Tab */}
+          {/* All Reports Tab */}
           <TabsContent value="reports" className="space-y-4">
             {/* Filters */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
+                  <Filter className="h-5 w-5" />
                   Filters
                 </CardTitle>
               </CardHeader>
@@ -444,18 +276,16 @@ export default function SnowRemovalPage() {
                       type="date"
                       value={dateFilter}
                       onChange={(e) => setDateFilter(e.target.value)}
-                      className="w-full"
                     />
                   </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="site-filter">Site</Label>
                     <Select value={siteFilter} onValueChange={setSiteFilter}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All sites" />
+                      <SelectTrigger>
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All sites</SelectItem>
+                        <SelectItem value="all">All Sites</SelectItem>
                         {sites.map((site) => (
                           <SelectItem key={site.id} value={site.id}>
                             {site.name}
@@ -464,31 +294,25 @@ export default function SnowRemovalPage() {
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="status-filter">Status</Label>
                     <Select
                       value={statusFilter}
                       onValueChange={setStatusFilter}
                     >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All statuses" />
+                      <SelectTrigger>
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
+                        <SelectItem value="all">All Status</SelectItem>
                         <SelectItem value="draft">Drafts</SelectItem>
                         <SelectItem value="submitted">Submitted</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div className="space-y-2">
                     <Label>&nbsp;</Label>
-                    <Button
-                      variant="outline"
-                      onClick={clearFilters}
-                      className="w-full"
-                    >
+                    <Button variant="outline" onClick={clearFilters}>
                       Clear Filters
                     </Button>
                   </div>
@@ -497,205 +321,129 @@ export default function SnowRemovalPage() {
             </Card>
 
             {/* Reports List */}
-            <div className="space-y-4">
-              {reportsLoading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-32 w-full" />
-                  ))}
-                </div>
-              ) : filteredReports.length === 0 ? (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-6 sm:py-8 px-4">
-                    <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
-                    <h3 className="text-base sm:text-lg font-semibold mb-2 text-center">
-                      No reports found
-                    </h3>
-                    <p className="text-sm sm:text-base text-muted-foreground text-center mb-3 sm:mb-4 max-w-md">
-                      {reports.length === 0
-                        ? "You haven't created any reports yet. Create your first report to get started."
-                        : "No reports match your current filters. Try adjusting your search criteria."}
-                    </p>
-                    {reports.length === 0 && (
-                      <Button
-                        onClick={handleNewReport}
-                        className="flex items-center gap-2 text-sm"
-                      >
-                        <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-                        Create First Report
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ) : (
-                filteredReports.map((report) => (
-                  <Card key={report.id}>
-                    <CardHeader className="pb-3 sm:pb-6">
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0">
-                        <div className="flex-1">
-                          <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-base sm:text-lg">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                              <span className="text-sm sm:text-base">
-                                {format(
-                                  new Date(report.date),
-                                  "EEEE, MMMM d, yyyy"
-                                )}
-                              </span>
-                            </div>
-                            <StatusBadge
-                              isDraft={report.is_draft}
-                              submittedAt={report.submitted_at}
-                            />
-                          </CardTitle>
-                          <CardDescription className="flex items-center gap-2 mt-1">
-                            <MapPin className="h-3 w-3" />
-                            <span className="text-sm">{report.sites.name}</span>
-                            <PriorityBadge priority={report.sites.priority} />
-                          </CardDescription>
-                        </div>
-                        <div className="text-xs sm:text-sm text-muted-foreground text-left sm:text-right mt-1 sm:mt-0">
-                          {report.start_time} -{" "}
-                          {report.finish_time || "In Progress"}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-                        <div>
-                          <p className="text-xs sm:text-sm font-medium">
-                            Method
-                          </p>
-                          <p className="text-sm sm:text-base text-muted-foreground capitalize">
-                            {report.snow_removal_method
-                              .replace(/([A-Z])/g, " $1")
-                              .trim()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs sm:text-sm font-medium">
-                            Salt Used
-                          </p>
-                          <p className="text-sm sm:text-base text-muted-foreground">
-                            {report.salt_used_kg || 0} kg
-                          </p>
-                        </div>
-                        <div className="sm:col-span-2 md:col-span-1">
-                          <p className="text-xs sm:text-sm font-medium">
-                            Temperature
-                          </p>
-                          <p className="text-sm sm:text-base text-muted-foreground">
-                            {report.air_temperature || "N/A"}°C
-                          </p>
-                        </div>
-                      </div>
-                      {report.comments && (
-                        <div className="mt-3 pt-3 border-t">
-                          <p className="text-xs sm:text-sm font-medium">
-                            Comments
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {report.comments}
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </TabsContent>
-
-          {/* Drafts Tab */}
-          <TabsContent value="drafts" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Draft Reports</CardTitle>
-                <CardDescription>
-                  Manage your draft reports. Edit, submit, or delete drafts as
-                  needed.
-                </CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Reports ({filteredReports.length})
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <DraftReportsList
-                  onEditDraft={handleEditDraft}
-                  refreshTrigger={refreshDrafts}
-                  onReportsChange={reloadReports}
-                />
+                {loading ? (
+                  <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Skeleton key={i} className="h-24 w-full" />
+                    ))}
+                  </div>
+                ) : filteredReports.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No reports found matching your filters.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredReports.map((report) => (
+                      <div
+                        key={report.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">
+                                {report.sites?.name || `Site ${report.site_id}`}
+                              </h3>
+                              <StatusBadge
+                                isDraft={report.is_draft}
+                                isArchived={false}
+                              />
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-4 w-4" />
+                                {format(new Date(report.date), "MMM d, yyyy")}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                {report.start_time}
+                                {report.finish_time &&
+                                  ` - ${report.finish_time}`}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-4 w-4" />
+                                {report.sites?.address || "Unknown address"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {canEditReports && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditReport(report)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteReport(report.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
+
+            {/* Draft Reports */}
+            {canCreateReports && (
+              <DraftReportsList
+                key={refreshDrafts}
+                onEditDraft={handleEditReport}
+              />
+            )}
           </TabsContent>
 
-          {/* Create/Edit Report Tab */}
-          <TabsContent value="create" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>
-                      {editingReport
-                        ? "Edit Draft Report"
-                        : isMultiSiteMode
-                          ? "Create Multi-Site Snow Removal Report"
-                          : "Create New Snow Removal Report"}
-                    </CardTitle>
-                    <CardDescription>
-                      {editingReport
-                        ? "Update your draft report and submit when ready."
-                        : isMultiSiteMode
-                          ? "Create reports for multiple sites in one submission. Share weather data and operator info while maintaining individual site details."
-                          : "Fill out the details of your snow removal activities. Weather data and material calculations are automated."}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!editingReport && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant={!isMultiSiteMode ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setIsMultiSiteMode(false)}
-                        >
-                          Single Site
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={isMultiSiteMode ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setIsMultiSiteMode(true)}
-                        >
-                          Multi-Site
-                        </Button>
-                      </div>
-                    )}
+          {/* Create Report Tab */}
+          {canCreateReports && (
+            <TabsContent value="create" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Plus className="h-5 w-5" />
+                        {editingReport ? "Edit Report" : "Create New Report"}
+                      </CardTitle>
+                      <CardDescription>
+                        {editingReport
+                          ? `Editing report for ${editingReport.site_name || "Unknown Site"}`
+                          : "Create reports for one or multiple sites in a single submission"}
+                      </CardDescription>
+                    </div>
                     {editingReport && (
                       <Button variant="outline" onClick={handleCancelEdit}>
                         Cancel Edit
                       </Button>
                     )}
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {editingReport || !isMultiSiteMode ? (
-                  <SnowRemovalForm
-                    // @ts-expect-error - Type mismatch between report structures, works at runtime
-                    existingReport={editingReport || undefined}
-                    onSubmit={handleReportSubmitted}
-                  />
-                ) : (
-                  <MultiSiteSnowRemovalForm
-                    onSubmit={handleMultiSiteReportSubmitted}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardHeader>
+                <CardContent>
+                  <SnowRemovalForm onSubmit={handleReportSubmitted} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Admin Reports Tab */}
           {canExportData && (
             <TabsContent value="admin" className="space-y-4">
-              <AdminReportsList refreshTrigger={refreshDrafts} />
+              <AdminReportsList />
             </TabsContent>
           )}
         </Tabs>

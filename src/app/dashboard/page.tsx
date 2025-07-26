@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { useCompany } from "@/lib/contexts/company-context";
 import Spinner from "@/components/spinner";
 import { AppLayout } from "@/components/app-layout";
-import { MultiSiteSnowRemovalForm } from "@/components/multi-site-snow-removal-form";
+import { SnowRemovalForm } from "@/components/snow-removal-form";
 import {
   Card,
   CardContent,
@@ -261,7 +261,7 @@ function EmployeeDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
-          <MultiSiteSnowRemovalForm onSubmit={handleMultiSiteReportSubmitted} />
+          <SnowRemovalForm onSubmit={handleMultiSiteReportSubmitted} />
         </CardContent>
       </Card>
     </div>
