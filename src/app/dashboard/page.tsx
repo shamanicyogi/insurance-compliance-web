@@ -19,7 +19,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
   TrendingUp,
-  Activity,
   Plus,
   CloudSnow,
   Clock,
@@ -61,17 +60,8 @@ interface Report {
   date: string;
   is_draft: boolean;
   finish_time?: string;
+  site_id?: string; // Added for aggregation
 }
-
-// Sample data for analytics (for owners/managers)
-const analyticsData = [
-  { name: "Jan", reports: 45, sites: 12 },
-  { name: "Feb", reports: 38, sites: 15 },
-  { name: "Mar", reports: 52, sites: 18 },
-  { name: "Apr", reports: 61, sites: 22 },
-  { name: "May", reports: 28, sites: 25 },
-  { name: "Jun", reports: 15, sites: 28 },
-];
 
 const recentActivity = [
   {
@@ -86,6 +76,11 @@ const recentActivity = [
 function EmployeeDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  const handleNavigate = (path: string) => {
+    router.push(path);
+  };
 
   const handleMultiSiteReportSubmitted = async (
     reports: CreateReportRequest[]
@@ -184,7 +179,10 @@ function EmployeeDashboard() {
 
       {/* Quick Stats for Employee - Compact Mobile Layout */}
       <div className="grid gap-2 sm:gap-4 grid-cols-3 md:grid-cols-3">
-        <Card className="p-3 sm:p-4">
+        <Card
+          className="p-3 sm:p-4 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => handleNavigate("/snow-removal")}
+        >
           <div className="flex flex-col items-center space-y-1 sm:space-y-2">
             <div className="flex items-center space-x-1 sm:space-x-2">
               <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
@@ -205,7 +203,10 @@ function EmployeeDashboard() {
           </div>
         </Card>
 
-        <Card className="p-3 sm:p-4">
+        <Card
+          className="p-3 sm:p-4 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => handleNavigate("/sites")}
+        >
           <div className="flex flex-col items-center space-y-1 sm:space-y-2">
             <div className="flex items-center space-x-1 sm:space-x-2">
               <CloudSnow className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
@@ -226,7 +227,10 @@ function EmployeeDashboard() {
           </div>
         </Card>
 
-        <Card className="p-3 sm:p-4">
+        <Card
+          className="p-3 sm:p-4 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => handleNavigate("/snow-removal?filter=active")}
+        >
           <div className="flex flex-col items-center space-y-1 sm:space-y-2">
             <div className="flex items-center space-x-1 sm:space-x-2">
               <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
@@ -270,11 +274,102 @@ function EmployeeDashboard() {
 
 function ManagerDashboard({ userRole }: { userRole: string }) {
   const { employee } = useCompany();
+  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [siteData, setSiteData] = useState<
     { name: string; value: number; color: string }[]
   >([]);
+  const [analyticsData, setAnalyticsData] = useState<
+    { name: string; reports: number; sites: number }[]
+  >([]);
   const [loading, setLoading] = useState(true);
+
+  const handleNavigate = (path: string) => {
+    router.push(path);
+  };
+
+  const handleAddNewSite = () => {
+    router.push("/sites?action=add");
+  };
+
+  const handlePieClick = (data: {
+    name: string;
+    value: number;
+    color: string;
+  }) => {
+    if (data && data.name) {
+      const priority = data.name.toLowerCase().split(" ")[0]; // "high", "medium", "low"
+      router.push(`/sites?priority=${priority}`);
+      toast.success(`Showing ${data.name} sites`);
+    }
+  };
+
+  const handleAreaChartClick = (data: { activeLabel?: string }) => {
+    if (data && data.activeLabel) {
+      const month = data.activeLabel.toLowerCase();
+      router.push(`/snow-removal?filter=${month}`);
+      toast.success(`Showing reports for ${data.activeLabel}`);
+    }
+  };
+
+  const aggregateMonthlyData = (reports: Report[]) => {
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const currentDate = new Date();
+    const sixMonthsAgo = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() - 5,
+      1
+    );
+
+    const monthlyData: {
+      [key: string]: { reports: number; sites: Set<string> };
+    } = {};
+
+    // Initialize last 6 months
+    for (let i = 0; i < 6; i++) {
+      const date = new Date(
+        sixMonthsAgo.getFullYear(),
+        sixMonthsAgo.getMonth() + i,
+        1
+      );
+      const monthKey = monthNames[date.getMonth()];
+      monthlyData[monthKey] = { reports: 0, sites: new Set() };
+    }
+
+    // Aggregate reports by month
+    reports.forEach((report) => {
+      const reportDate = new Date(report.date);
+      if (reportDate >= sixMonthsAgo) {
+        const monthKey = monthNames[reportDate.getMonth()];
+        if (monthlyData[monthKey]) {
+          monthlyData[monthKey].reports++;
+          if (report.site_id) {
+            monthlyData[monthKey].sites.add(report.site_id);
+          }
+        }
+      }
+    });
+
+    // Convert to chart format
+    return Object.entries(monthlyData).map(([month, data]) => ({
+      name: month,
+      reports: data.reports,
+      sites: data.sites.size,
+    }));
+  };
 
   useEffect(() => {
     const loadManagerStats = async () => {
@@ -361,6 +456,10 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
         });
 
         setSiteData(newSiteData);
+
+        // Aggregate and set analytics data
+        const aggregatedData = aggregateMonthlyData(reports);
+        setAnalyticsData(aggregatedData);
       } catch (error) {
         console.error("Error loading manager stats:", error);
         setStats({
@@ -372,6 +471,7 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
           completionRate: 0,
         });
         setSiteData([]);
+        setAnalyticsData([]);
       } finally {
         setLoading(false);
       }
@@ -387,7 +487,7 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
           {userRole === "owner" ? "Company" : "Management"} Dashboard
         </h2>
         <div className="flex items-center space-x-2">
-          <Button className="text-sm">
+          <Button className="text-sm" onClick={handleAddNewSite}>
             <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden sm:inline">Add New Site</span>
             <span className="sm:hidden">Add Site</span>
@@ -397,7 +497,10 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
 
       {/* Stats Cards - Mobile Optimized */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => handleNavigate("/team")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium">
               <span className="hidden sm:inline">Total Employees</span>
@@ -420,7 +523,10 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => handleNavigate("/sites")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium">
               <span className="hidden sm:inline">Active Sites</span>
@@ -443,7 +549,10 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => handleNavigate("/snow-removal")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium">
               <span className="hidden sm:inline">Today&apos;s Reports</span>
@@ -466,7 +575,7 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium">
               <span className="hidden sm:inline">Completion Rate</span>
@@ -507,7 +616,7 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
               height={280}
               className="sm:h-[350px]"
             >
-              <AreaChart data={analyticsData}>
+              <AreaChart data={analyticsData} onClick={handleAreaChartClick}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" fontSize={12} className="sm:text-sm" />
                 <YAxis fontSize={12} className="sm:text-sm" />
@@ -572,6 +681,7 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
                     fill="#8884d8"
                     dataKey="value"
                     fontSize={12}
+                    onClick={handlePieClick}
                   >
                     {siteData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -649,26 +759,46 @@ function ManagerDashboard({ userRole }: { userRole: string }) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-4">
-            <Button className="w-full justify-start text-sm" variant="outline">
+            <Button
+              className="w-full justify-start text-sm"
+              variant="outline"
+              onClick={() => handleNavigate("/team")}
+            >
               <Users className="mr-2 h-4 w-4 flex-shrink-0" />
               <span className="truncate">Manage Employees</span>
             </Button>
-            <Button className="w-full justify-start text-sm" variant="outline">
+            <Button
+              className="w-full justify-start text-sm"
+              variant="outline"
+              onClick={() => handleNavigate("/sites")}
+            >
               <CloudSnow className="mr-2 h-4 w-4 flex-shrink-0" />
               <span className="truncate">Site Management</span>
             </Button>
-            <Button className="w-full justify-start text-sm" variant="outline">
+            <Button
+              className="w-full justify-start text-sm"
+              variant="outline"
+              onClick={() => handleNavigate("/snow-removal")}
+            >
               <FileText className="mr-2 h-4 w-4 flex-shrink-0" />
               <span className="truncate">View All Reports</span>
             </Button>
-            <Button className="w-full justify-start text-sm" variant="outline">
+            <Button
+              className="w-full justify-start text-sm"
+              variant="outline"
+              onClick={() => handleNavigate("/dashboard")}
+            >
               <TrendingUp className="mr-2 h-4 w-4 flex-shrink-0" />
               <span className="truncate">Analytics Dashboard</span>
             </Button>
-            <Button className="w-full justify-start text-sm" variant="outline">
+            {/* <Button
+              className="w-full justify-start text-sm"
+              variant="outline"
+              onClick={() => handleNavigate("/settings")}
+            >
               <Activity className="mr-2 h-4 w-4 flex-shrink-0" />
-              <span className="truncate">System Status</span>
-            </Button>
+              <span className="truncate">System Settings</span>
+            </Button> */}
           </CardContent>
         </Card>
       </div>
