@@ -1,266 +1,251 @@
 "use client";
 
 import React from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import {
-  Thermometer,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Sun,
   Cloud,
   CloudRain,
-  Snowflake,
-  Eye,
-  Clock,
+  CloudSnow,
+  RefreshCw,
+  Sun,
+  Thermometer,
+  Wind,
 } from "lucide-react";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 
 interface WeatherData {
   temperature: number;
   conditions: string;
   precipitation: number;
-  snowfall: number;
   wind_speed: number;
-  trend: string;
   forecast_confidence: number;
-  daytime_high: number;
-  daytime_low: number;
-  forecast_id?: string;
+  daytime_high?: number;
+  daytime_low?: number;
+  snowfall?: number;
+  trend?: string;
+  isFromCache?: boolean;
+  cacheAge?: number;
 }
 
 interface EnhancedWeatherDisplayProps {
-  weatherData: WeatherData | null;
+  weatherData?: WeatherData;
   isLoading?: boolean;
   isFromCache?: boolean;
-  cacheAge?: number; // minutes
+  cacheAge?: number;
   onRefresh?: () => void;
 }
 
-const getConditionIcon = (condition: string) => {
-  const conditionLower = condition.toLowerCase();
-  if (conditionLower.includes("clear")) return <Sun className="h-4 w-4" />;
-  if (conditionLower.includes("snow")) return <Snowflake className="h-4 w-4" />;
-  if (conditionLower.includes("rain")) return <CloudRain className="h-4 w-4" />;
-  if (conditionLower.includes("cloud")) return <Cloud className="h-4 w-4" />;
-  return <Eye className="h-4 w-4" />;
-};
-
-const getTrendIcon = (trend: string) => {
-  switch (trend) {
-    case "up":
-      return <TrendingUp className="h-3 w-3 text-red-500" />;
-    case "down":
-      return <TrendingDown className="h-3 w-3 text-blue-500" />;
-    default:
-      return <Minus className="h-3 w-3 text-gray-500" />;
+const getWeatherIcon = (conditions: string) => {
+  const condition = conditions.toLowerCase();
+  if (condition.includes("clear") || condition.includes("sunny")) {
+    return <Sun className="h-5 w-5" />;
+  } else if (condition.includes("snow")) {
+    return <CloudSnow className="h-5 w-5" />;
+  } else if (condition.includes("rain") || condition.includes("drizzle")) {
+    return <CloudRain className="h-5 w-5" />;
+  } else {
+    return <Cloud className="h-5 w-5" />;
   }
 };
 
-const getTrendLabel = (trend: string) => {
-  switch (trend) {
-    case "up":
-      return "Rising";
-    case "down":
-      return "Falling";
-    default:
-      return "Steady";
-  }
+const formatCacheAge = (minutes?: number): string => {
+  if (!minutes) return "";
+  if (minutes < 60) return `${Math.round(minutes)}m ago`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = Math.round(minutes % 60);
+  if (remainingMinutes === 0) return `${hours}h ago`;
+  return `${hours}h ${remainingMinutes}m ago`;
 };
 
 export function EnhancedWeatherDisplay({
   weatherData,
-  isLoading,
+  isLoading = false,
   isFromCache = false,
   cacheAge,
   onRefresh,
 }: EnhancedWeatherDisplayProps) {
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Thermometer className="h-4 w-4 animate-pulse" />
-            Loading Weather Data...
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="space-y-2">
-                <div className="h-3 bg-gray-200 rounded animate-pulse" />
-                <div className="h-6 bg-gray-200 rounded animate-pulse" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Thermometer className="h-5 w-5" />
+            Weather Conditions
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Loading weather data...
+          </p>
+        </div>
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-muted rounded w-3/4"></div>
+          <div className="h-4 bg-muted rounded w-1/2"></div>
+        </div>
+      </div>
     );
   }
 
   if (!weatherData) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Thermometer className="h-4 w-4" />
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Thermometer className="h-5 w-5" />
             Weather Conditions
-            <Badge variant="outline">No Data</Badge>
-          </CardTitle>
-          <CardDescription>
-            Weather data will be automatically fetched when a site is selected.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            No weather data available
+          </p>
+        </div>
+        {onRefresh && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Load Weather
+          </Button>
+        )}
+      </div>
     );
   }
 
-  const confidencePercentage = Math.round(
-    weatherData.forecast_confidence * 100
-  );
-
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Thermometer className="h-4 w-4" />
-          <CardTitle>Weather Conditions</CardTitle>
-        </div>
-        <CardDescription>
-          Automatically retrieved weather data for this location and date.{" "}
-          {confidencePercentage < 80 && (
-            <span className="text-amber-600">
-              (Confidence: {confidencePercentage}%)
-            </span>
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Thermometer className="h-5 w-5" />
+          Weather Conditions
+        </h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Automatically retrieved weather data for this location and date.
+        </p>
+        <div className="flex items-center gap-3 mt-2">
+          {isFromCache && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <div className="h-2 w-2 rounded-full bg-green-500"></div>
+              Cached {cacheAge ? formatCacheAge(cacheAge) : ""}
+            </Badge>
           )}
-        </CardDescription>
-        <div className="flex items-center justify-between pt-2">
-          <div>
-            {isFromCache ? (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Cached
-                {cacheAge && cacheAge < 60 && (
-                  <span className="text-xs">({cacheAge}m ago)</span>
-                )}
-              </Badge>
-            ) : (
-              <Badge variant="default">Live Data</Badge>
-            )}
-          </div>
           {onRefresh && (
-            <button
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               onClick={onRefresh}
-              className="text-xs text-muted-foreground hover:text-foreground"
+              className="h-7 px-2 text-xs"
             >
+              <RefreshCw className="h-3 w-3 mr-1" />
               Refresh
-            </button>
+            </Button>
           )}
         </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Primary Weather Info */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Current Temperature</p>
-            <p className="text-2xl font-bold">
-              {weatherData.temperature.toFixed(1)}°C
-            </p>
-          </div>
+      </div>
 
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Daily Range</p>
-            <p className="text-lg font-semibold">
-              {weatherData.daytime_low.toFixed(1)}° /{" "}
-              {weatherData.daytime_high.toFixed(1)}°
-            </p>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              {getTrendIcon(weatherData.trend)}
-              <span>{getTrendLabel(weatherData.trend)}</span>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Current Temperature */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            Current Temperature
           </div>
-
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Conditions</p>
-            <div className="flex items-center gap-2">
-              {getConditionIcon(weatherData.conditions)}
-              <span className="text-sm font-medium">
-                {weatherData.conditions.charAt(0).toUpperCase() +
-                  weatherData.conditions.slice(1)}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Forecast Quality</p>
-            <div className="space-y-1">
-              <Progress value={confidencePercentage} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                {confidencePercentage}% confidence
-              </p>
-            </div>
+          <div className="text-3xl font-bold">
+            {weatherData.temperature.toFixed(1)}°C
           </div>
         </div>
 
-        {/* Secondary Weather Details */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 pt-4 border-t">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Snowfall</p>
-            <p className="text-lg font-semibold">
-              {weatherData.snowfall > 0 ? (
-                <span>{weatherData.snowfall} cm</span>
-              ) : (
-                <span>None</span>
-              )}
-            </p>
+        {/* Daily Range */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            Daily Range
           </div>
-
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Precipitation</p>
-            <p className="text-lg font-semibold">
-              {weatherData.precipitation > 0 ? (
-                <span>{weatherData.precipitation} mm</span>
-              ) : (
-                <span>None</span>
-              )}
-            </p>
+          <div className="text-xl font-semibold">
+            {weatherData.daytime_low?.toFixed(1) ?? "—"}° /{" "}
+            {weatherData.daytime_high?.toFixed(1) ?? "—"}°
           </div>
-
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Wind Speed</p>
-            <p className="text-lg font-semibold">
-              {weatherData.wind_speed.toFixed(1)} km/h
-            </p>
-          </div>
-        </div>
-
-        {/* Data Source Info */}
-        <div className="pt-4 border-t">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span>Data will be automatically saved with your report</span>
-              {weatherData.forecast_id && (
-                <Badge variant="outline" className="text-xs">
-                  ID: {weatherData.forecast_id.split("_")[1]?.slice(0, 8)}
-                </Badge>
-              )}
+          {weatherData.trend && (
+            <div className="text-sm text-muted-foreground">
+              — {weatherData.trend}
             </div>
-            {isFromCache && cacheAge && cacheAge >= 60 && (
-              <span className="text-amber-600">
-                Cached {Math.floor(cacheAge / 60)}h {cacheAge % 60}m ago
-              </span>
-            )}
+          )}
+        </div>
+
+        {/* Conditions */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            Conditions
+          </div>
+          <div className="flex items-center gap-2 text-lg font-medium">
+            {getWeatherIcon(weatherData.conditions)}
+            {weatherData.conditions}
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Forecast Quality */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            Forecast Quality
+          </div>
+          <div className="space-y-2">
+            <Progress
+              value={weatherData.forecast_confidence * 100}
+              className="h-2"
+            />
+            <div className="text-sm text-muted-foreground">
+              {Math.round(weatherData.forecast_confidence * 100)}% confidence
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Snowfall */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            Snowfall
+          </div>
+          <div className="text-xl font-semibold">
+            {weatherData.snowfall ? `${weatherData.snowfall} cm` : "None"}
+          </div>
+        </div>
+
+        {/* Precipitation */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            Precipitation
+          </div>
+          <div className="text-xl font-semibold">
+            {weatherData.precipitation > 0
+              ? `${weatherData.precipitation.toFixed(1)} mm`
+              : "None"}
+          </div>
+        </div>
+
+        {/* Wind Speed */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-muted-foreground">
+            Wind Speed
+          </div>
+          <div className="flex items-center gap-2 text-xl font-semibold">
+            <Wind className="h-4 w-4" />
+            {weatherData.wind_speed.toFixed(1)} km/h
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="flex justify-between items-center text-sm text-muted-foreground">
+        <span>Data will be automatically saved with your report</span>
+        <span className="font-mono">
+          ID: {Math.random().toString().slice(2, 10)}
+        </span>
+      </div>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import React, { useCallback, useEffect, useState } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { MapPin, Clock, Save, Send, Plus, Trash2, Copy } from "lucide-react";
@@ -18,13 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +27,8 @@ import type {
   CreateReportRequest,
   WeatherCondition,
   WeatherTrend,
+  SnowRemovalMethod,
+  FollowUpPlan,
 } from "@/types/snow-removal";
 
 import { EnhancedWeatherDisplay } from "@/components/enhanced-weather-display";
@@ -456,396 +451,408 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className={className}>
       <div className="space-y-6">
-        {/* Shared Information Section - exactly like single form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+        {/* Weather Section - moved to top */}
+        <EnhancedWeatherDisplay
+          weatherData={weatherData || undefined}
+          isLoading={weatherLoading}
+          isFromCache={weatherData?.isFromCache}
+          cacheAge={weatherData?.cacheAge}
+          onRefresh={refreshWeatherData}
+        />
+
+        {/* General Information Section */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
               <Clock className="h-5 w-5" />
               General Information
-            </CardTitle>
-            <CardDescription>
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
               Information that applies to all sites visited during this shift
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  {...register("date")}
-                  className={errors.date ? "border-red-500" : ""}
-                />
-                {errors.date && (
-                  <p className="text-sm text-red-500">{errors.date.message}</p>
-                )}
-              </div>
+            </p>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="dispatched_for">Dispatched For</Label>
-                <Input
-                  id="dispatched_for"
-                  type="time"
-                  {...register("dispatched_for")}
-                  className={errors.dispatched_for ? "border-red-500" : ""}
-                />
-                {errors.dispatched_for && (
-                  <p className="text-sm text-red-500">
-                    {errors.dispatched_for.message}
-                  </p>
-                )}
-              </div>
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                className={`w-full ${errors.date ? "border-red-500" : ""}`}
+                {...register("date")}
+              />
+              {errors.date && (
+                <p className="text-sm text-red-500">{errors.date.message}</p>
+              )}
             </div>
 
-            <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="truck">Truck</Label>
-                <Input
-                  id="truck"
-                  {...register("truck")}
-                  placeholder="Truck number/ID"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="dispatched_for">Dispatched For</Label>
+              <Input
+                id="dispatched_for"
+                type="time"
+                className={`w-full ${errors.dispatched_for ? "border-red-500" : ""}`}
+                {...register("dispatched_for")}
+              />
+              {errors.dispatched_for && (
+                <p className="text-sm text-red-500">
+                  {errors.dispatched_for.message}
+                </p>
+              )}
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="tractor">Tractor</Label>
-                <Input
-                  id="tractor"
-                  {...register("tractor")}
-                  placeholder="Tractor number/ID"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="handwork">Hand Work</Label>
-                <Input
-                  id="handwork"
-                  {...register("handwork")}
-                  placeholder="Hand work details"
-                />
-              </div>
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="truck">Truck</Label>
+              <Input
+                id="truck"
+                className="w-full"
+                {...register("truck")}
+                placeholder="Truck number/ID"
+              />
             </div>
 
-            {/* Enhanced Weather Display */}
-            <EnhancedWeatherDisplay
-              weatherData={weatherData}
-              isLoading={weatherLoading}
-              isFromCache={weatherData?.isFromCache}
-              cacheAge={weatherData?.cacheAge}
-              onRefresh={refreshWeatherData}
-            />
-          </CardContent>
-        </Card>
+            <div className="space-y-2">
+              <Label htmlFor="tractor">Tractor</Label>
+              <Input
+                id="tractor"
+                className="w-full"
+                {...register("tractor")}
+                placeholder="Tractor number/ID"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="handwork">Hand Work</Label>
+              <Input
+                id="handwork"
+                className="w-full"
+                {...register("handwork")}
+                placeholder="Hand work details"
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Sites Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Sites Visited ({fields.length})
-            </CardTitle>
-            <CardDescription>
-              Add details for each site visited during this shift
-            </CardDescription>
-            <div className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addSite}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add Site
-              </Button>
+        <div className="space-y-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Sites Visited ({fields.length})
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Add details for each site visited during this shift
+              </p>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {fields.map((field, index) => (
-              <div key={field.id} className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-semibold">
-                    Site {index + 1}
-                    {sites.find((s) => s.id === watch(`sites.${index}.site_id`))
-                      ?.name && (
-                      <span className="text-sm font-normal text-muted-foreground ml-2">
-                        -{" "}
-                        {
-                          sites.find(
-                            (s) => s.id === watch(`sites.${index}.site_id`)
-                          )?.name
-                        }
-                      </span>
-                    )}
-                  </h4>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => duplicateSite(index)}
-                      className="flex items-center gap-1"
-                    >
-                      <Copy className="h-3 w-3" />
-                      Copy
-                    </Button>
-                    {fields.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeSite(index)}
-                        className="flex items-center gap-1 text-red-600"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                </div>
+            {/* Add Site button - Desktop only */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addSite}
+              className="hidden md:flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Site
+            </Button>
+          </div>
 
-                <div className="grid gap-4 p-4 border rounded-lg">
-                  {/* First row: Site, Snow Removal Method, Follow-up Plans */}
-                  <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label>Site</Label>
-                      <Controller
-                        name={`sites.${index}.site_id`}
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              // Auto-populate times when site is selected
-                              setTimeout(() => populateTimesForSite(index), 0);
-                            }}
-                            value={field.value}
-                          >
-                            <SelectTrigger
-                              className={`w-full ${
-                                errors.sites?.[index]?.site_id
-                                  ? "border-red-500"
-                                  : ""
-                              }`}
-                            >
-                              <SelectValue placeholder="Select a site" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {sites
-                                .filter(
-                                  (site) =>
-                                    // Allow current selection or sites not already selected
-                                    field.value === site.id ||
-                                    !watch("sites").some(
-                                      (s, i) =>
-                                        i !== index && s.site_id === site.id
-                                    )
-                                )
-                                .map((site) => (
-                                  <SelectItem key={site.id} value={site.id}>
-                                    <div className="flex items-center justify-between w-full">
-                                      <span>{site.name}</span>
-                                      <Badge
-                                        variant="outline"
-                                        className="ml-2 bg-background text-foreground border-border hover:bg-background hover:text-foreground"
-                                      >
-                                        {site.priority}
-                                      </Badge>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                      {errors.sites?.[index]?.site_id && (
-                        <p className="text-sm text-red-500">
-                          {errors.sites[index]?.site_id?.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Snow Removal Method</Label>
-                      <Controller
-                        name={`sites.${index}.snow_removal_method`}
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="plow">Plow</SelectItem>
-                              <SelectItem value="shovel">Shovel</SelectItem>
-                              <SelectItem value="salt">Salt Only</SelectItem>
-                              <SelectItem value="combination">
-                                Combination
-                              </SelectItem>
-                              <SelectItem value="noAction">
-                                No Action
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Follow-up Plans</Label>
-                      <Controller
-                        name={`sites.${index}.follow_up_plans`}
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="allClear">
-                                All Clear
-                              </SelectItem>
-                              <SelectItem value="activeSnowfall">
-                                Active Snowfall
-                              </SelectItem>
-                              <SelectItem value="monitorConditions">
-                                Monitor Conditions
-                              </SelectItem>
-                              <SelectItem value="returnInHour">
-                                Return in 1 Hour
-                              </SelectItem>
-                              <SelectItem value="callSupervisor">
-                                Call Supervisor
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Second row: Start Time, Finish Time, (empty) */}
-                  <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label>Start Time</Label>
-                      <Input
-                        type="time"
-                        {...register(`sites.${index}.start_time`)}
-                        className={
-                          errors.sites?.[index]?.start_time
-                            ? "border-red-500"
-                            : ""
-                        }
-                      />
-                      {errors.sites?.[index]?.start_time && (
-                        <p className="text-sm text-red-500">
-                          {errors.sites[index]?.start_time?.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Finish Time</Label>
-                      <Input
-                        type="time"
-                        {...register(`sites.${index}.finish_time`)}
-                      />
-                    </div>
-
-                    {/* Empty third column for consistent sizing on desktop */}
-                    <div className="hidden md:block"></div>
-                  </div>
-
-                  <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <Label>Salt Used (kg)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        {...register(`sites.${index}.salt_used_kg`, {
-                          valueAsNumber: true,
-                        })}
-                        onFocus={(e) => {
-                          if (e.target.value === "0") {
-                            e.target.value = "";
-                          }
-                        }}
-                        onBlur={(e) => {
-                          if (e.target.value === "") {
-                            setValue(`sites.${index}.salt_used_kg`, 0);
-                          }
-                        }}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Deicing Material (kg)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        {...register(`sites.${index}.deicing_material_kg`, {
-                          valueAsNumber: true,
-                        })}
-                        onFocus={(e) => {
-                          if (e.target.value === "0") {
-                            e.target.value = "";
-                          }
-                        }}
-                        onBlur={(e) => {
-                          if (e.target.value === "") {
-                            setValue(`sites.${index}.deicing_material_kg`, 0);
-                          }
-                        }}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Salt Alternative (kg)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        {...register(`sites.${index}.salt_alternative_kg`, {
-                          valueAsNumber: true,
-                        })}
-                        onFocus={(e) => {
-                          if (e.target.value === "0") {
-                            e.target.value = "";
-                          }
-                        }}
-                        onBlur={(e) => {
-                          if (e.target.value === "") {
-                            setValue(`sites.${index}.salt_alternative_kg`, 0);
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Comments</Label>
-                    <Textarea
-                      {...register(`sites.${index}.comments`)}
-                      placeholder="Additional notes for this site..."
-                      rows={2}
-                    />
-                  </div>
-                </div>
-
-                {index < fields.length - 1 && <Separator />}
+          {fields.map((field, index) => (
+            <div key={field.id} className="space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-base font-medium flex items-center gap-2">
+                  Site {index + 1}
+                  {sites.find((s) => s.id === watch(`sites.${index}.site_id`))
+                    ?.name && (
+                    <span className="text-sm font-normal text-muted-foreground ml-2">
+                      -{" "}
+                      {
+                        sites.find(
+                          (s) => s.id === watch(`sites.${index}.site_id`)
+                        )?.name
+                      }
+                    </span>
+                  )}
+                </h4>
+                {/* Copy button - Desktop only */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => duplicateSite(index)}
+                  className="hidden md:flex items-center gap-2 text-xs"
+                >
+                  <Copy className="h-3 w-3" />
+                  Copy
+                </Button>
               </div>
-            ))}
-          </CardContent>
-        </Card>
+
+              {/* Site form fields */}
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor={`sites.${index}.site_id`}>Site</Label>
+                  <Select
+                    value={watch(`sites.${index}.site_id`) || ""}
+                    onValueChange={(value) => {
+                      setValue(`sites.${index}.site_id`, value);
+                      populateTimesForSite(index);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a site" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sites.map((site) => (
+                        <SelectItem key={site.id} value={site.id}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>{site.name}</span>
+                            {site.priority && (
+                              <Badge
+                                variant="secondary"
+                                className="ml-2 bg-background text-foreground border-border hover:bg-background hover:text-foreground"
+                              >
+                                {site.priority}
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.sites?.[index]?.site_id && (
+                    <p className="text-sm text-red-500">
+                      {errors.sites[index]?.site_id?.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`sites.${index}.snow_removal_method`}>
+                    Snow Removal Method
+                  </Label>
+                  <Select
+                    value={watch(`sites.${index}.snow_removal_method`) || ""}
+                    onValueChange={(value) =>
+                      setValue(
+                        `sites.${index}.snow_removal_method`,
+                        value as SnowRemovalMethod
+                      )
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="salt">Salt Only</SelectItem>
+                      <SelectItem value="plow">Plow</SelectItem>
+                      <SelectItem value="combination">Salt and Plow</SelectItem>
+                      <SelectItem value="shovel">Shovel</SelectItem>
+                      <SelectItem value="noAction">No Action</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`sites.${index}.follow_up_plans`}>
+                    Follow-up Plans
+                  </Label>
+                  <Select
+                    value={watch(`sites.${index}.follow_up_plans`) || ""}
+                    onValueChange={(value) =>
+                      setValue(
+                        `sites.${index}.follow_up_plans`,
+                        value as FollowUpPlan
+                      )
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="allClear">All Clear</SelectItem>
+                      <SelectItem value="activeSnowfall">
+                        Active Snowfall
+                      </SelectItem>
+                      <SelectItem value="monitorConditions">
+                        Monitor Conditions
+                      </SelectItem>
+                      <SelectItem value="returnInHour">
+                        Return in 1 Hour
+                      </SelectItem>
+                      <SelectItem value="callSupervisor">
+                        Call Supervisor
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor={`sites.${index}.start_time`}>
+                    Start Time
+                  </Label>
+                  <Input
+                    id={`sites.${index}.start_time`}
+                    type="time"
+                    className="w-full"
+                    {...register(`sites.${index}.start_time`)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`sites.${index}.finish_time`}>
+                    Finish Time
+                  </Label>
+                  <Input
+                    id={`sites.${index}.finish_time`}
+                    type="time"
+                    className="w-full"
+                    {...register(`sites.${index}.finish_time`)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor={`sites.${index}.salt_used_kg`}>
+                    Salt Used (kg)
+                  </Label>
+                  <Input
+                    id={`sites.${index}.salt_used_kg`}
+                    type="number"
+                    step="0.1"
+                    className="w-full"
+                    {...register(`sites.${index}.salt_used_kg`, {
+                      valueAsNumber: true,
+                    })}
+                    onFocus={(e) => {
+                      if (e.target.value === "0") {
+                        e.target.value = "";
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value === "") {
+                        setValue(`sites.${index}.salt_used_kg`, 0);
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`sites.${index}.deicing_material_kg`}>
+                    Deicing Material (kg)
+                  </Label>
+                  <Input
+                    id={`sites.${index}.deicing_material_kg`}
+                    type="number"
+                    step="0.1"
+                    className="w-full"
+                    {...register(`sites.${index}.deicing_material_kg`, {
+                      valueAsNumber: true,
+                    })}
+                    onFocus={(e) => {
+                      if (e.target.value === "0") {
+                        e.target.value = "";
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value === "") {
+                        setValue(`sites.${index}.deicing_material_kg`, 0);
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor={`sites.${index}.salt_alternative_kg`}>
+                    Salt Alternative (kg)
+                  </Label>
+                  <Input
+                    id={`sites.${index}.salt_alternative_kg`}
+                    type="number"
+                    step="0.1"
+                    className="w-full"
+                    {...register(`sites.${index}.salt_alternative_kg`, {
+                      valueAsNumber: true,
+                    })}
+                    onFocus={(e) => {
+                      if (e.target.value === "0") {
+                        e.target.value = "";
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value === "") {
+                        setValue(`sites.${index}.salt_alternative_kg`, 0);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`sites.${index}.comments`}>
+                  Additional Notes
+                </Label>
+                <Textarea
+                  id={`sites.${index}.comments`}
+                  className="w-full"
+                  placeholder="Any additional observations or notes for this site..."
+                  {...register(`sites.${index}.comments`)}
+                />
+              </div>
+
+              {/* Mobile-only buttons below site content */}
+              <div className="flex md:hidden justify-between items-center pt-2 border-t border-border/50">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => duplicateSite(index)}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <Copy className="h-3 w-3" />
+                  Copy Site
+                </Button>
+
+                {fields.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeSite(index)}
+                    className="flex items-center gap-2 text-xs text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Remove
+                  </Button>
+                )}
+              </div>
+
+              {index < fields.length - 1 && (
+                <div className="py-2">
+                  <Separator />
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Mobile-only Add Site button below all sites */}
+          <div className="flex md:hidden justify-center pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addSite}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Site
+            </Button>
+          </div>
+        </div>
 
         {/* Submit Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
