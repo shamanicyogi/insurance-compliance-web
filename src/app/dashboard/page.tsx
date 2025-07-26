@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { useCompany } from "@/lib/contexts/company-context";
 import Spinner from "@/components/spinner";
 import { AppLayout } from "@/components/app-layout";
-import { SnowRemovalForm } from "@/components/snow-removal-form";
+import { MultiSiteSnowRemovalForm } from "@/components/multi-site-snow-removal-form";
 import {
   Card,
   CardContent,
@@ -38,6 +38,8 @@ import {
   Cell,
 } from "recharts";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import type { CreateReportRequest } from "@/types/snow-removal";
 
 interface DashboardStats {
   todayReports: number;
@@ -84,6 +86,41 @@ const recentActivity = [
 function EmployeeDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleMultiSiteReportSubmitted = async (
+    reports: CreateReportRequest[]
+  ) => {
+    try {
+      // Submit each report individually using the existing single report API
+      const promises = reports.map((reportData) =>
+        fetch("/api/snow-removal/reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(reportData),
+        })
+      );
+
+      const responses = await Promise.all(promises);
+
+      const successful = responses.filter((r) => r.ok).length;
+      const failed = responses.length - successful;
+
+      if (successful > 0) {
+        toast.success(
+          reports[0]?.is_draft
+            ? `Saved ${successful} report(s) as drafts`
+            : `Submitted ${successful} report(s) successfully`
+        );
+      }
+
+      if (failed > 0) {
+        toast.error(`Failed to save ${failed} report(s)`);
+      }
+    } catch (error) {
+      console.error("Error saving multi-site reports:", error);
+      toast.error("Error saving reports");
+    }
+  };
 
   useEffect(() => {
     const loadEmployeeStats = async () => {
@@ -140,7 +177,7 @@ function EmployeeDashboard() {
             Snow Removal Job Site
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Complete your daily snow removal compliance report
+            Complete reports for multiple sites in one convenient form
           </p>
         </div>
       </div>
@@ -219,12 +256,12 @@ function EmployeeDashboard() {
             Job Site Completion Form
           </CardTitle>
           <CardDescription className="text-sm">
-            Fill out the details of your snow removal activities. Weather data
-            and material calculations are automated.
+            Create reports for multiple sites in one submission. Weather data is
+            shared while maintaining individual site details and times.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-0">
-          <SnowRemovalForm />
+          <MultiSiteSnowRemovalForm onSubmit={handleMultiSiteReportSubmitted} />
         </CardContent>
       </Card>
     </div>

@@ -28,6 +28,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { SnowRemovalForm } from "@/components/snow-removal-form";
+import { MultiSiteSnowRemovalForm } from "@/components/multi-site-snow-removal-form";
 import { DraftReportsList } from "@/components/draft-reports-list";
 import { AdminReportsList } from "@/components/admin-reports-list";
 import { AppLayout } from "@/components/app-layout";
@@ -79,6 +80,7 @@ export default function SnowRemovalPage() {
 
   // Navigation state
   const [activeTab, setActiveTab] = useState("reports");
+  const [isMultiSiteMode, setIsMultiSiteMode] = useState(false);
 
   // Filter states
   const [dateFilter, setDateFilter] = useState("");
@@ -211,6 +213,52 @@ export default function SnowRemovalPage() {
     } catch (error) {
       console.error("Error saving report:", error);
       toast.error("Error saving report");
+    }
+  };
+
+  // TODO - remove setIsMultiSiteMode
+
+  const handleMultiSiteReportSubmitted = async (
+    reports: CreateReportRequest[]
+  ) => {
+    try {
+      // Submit each report individually using the existing single report API
+      const promises = reports.map((reportData) =>
+        fetch("/api/snow-removal/reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(reportData),
+        })
+      );
+
+      const responses = await Promise.all(promises);
+
+      const successful = responses.filter((r) => r.ok).length;
+      const failed = responses.length - successful;
+
+      if (successful > 0) {
+        toast.success(
+          reports[0]?.is_draft
+            ? `Saved ${successful} report(s) as drafts`
+            : `Submitted ${successful} report(s) successfully`
+        );
+      }
+
+      if (failed > 0) {
+        toast.error(`Failed to save ${failed} report(s)`);
+      }
+
+      // If not a draft, go to reports tab, otherwise stay on current tab
+      if (!reports[0]?.is_draft) {
+        setActiveTab("reports");
+      }
+
+      // Reload reports and trigger draft refresh
+      await reloadReports();
+      setRefreshDrafts((prev) => prev + 1);
+    } catch (error) {
+      console.error("Error saving multi-site reports:", error);
+      toast.error("Error saving reports");
     }
   };
 
@@ -587,27 +635,59 @@ export default function SnowRemovalPage() {
                     <CardTitle>
                       {editingReport
                         ? "Edit Draft Report"
-                        : "Create New Snow Removal Report"}
+                        : isMultiSiteMode
+                          ? "Create Multi-Site Snow Removal Report"
+                          : "Create New Snow Removal Report"}
                     </CardTitle>
                     <CardDescription>
                       {editingReport
                         ? "Update your draft report and submit when ready."
-                        : "Fill out the details of your snow removal activities. Weather data and material calculations are automated."}
+                        : isMultiSiteMode
+                          ? "Create reports for multiple sites in one submission. Share weather data and operator info while maintaining individual site details."
+                          : "Fill out the details of your snow removal activities. Weather data and material calculations are automated."}
                     </CardDescription>
                   </div>
-                  {editingReport && (
-                    <Button variant="outline" onClick={handleCancelEdit}>
-                      Cancel Edit
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {!editingReport && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant={!isMultiSiteMode ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setIsMultiSiteMode(false)}
+                        >
+                          Single Site
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={isMultiSiteMode ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setIsMultiSiteMode(true)}
+                        >
+                          Multi-Site
+                        </Button>
+                      </div>
+                    )}
+                    {editingReport && (
+                      <Button variant="outline" onClick={handleCancelEdit}>
+                        Cancel Edit
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <SnowRemovalForm
-                  // @ts-expect-error - Type mismatch between report structures, works at runtime
-                  existingReport={editingReport || undefined}
-                  onSubmit={handleReportSubmitted}
-                />
+                {editingReport || !isMultiSiteMode ? (
+                  <SnowRemovalForm
+                    // @ts-expect-error - Type mismatch between report structures, works at runtime
+                    existingReport={editingReport || undefined}
+                    onSubmit={handleReportSubmitted}
+                  />
+                ) : (
+                  <MultiSiteSnowRemovalForm
+                    onSubmit={handleMultiSiteReportSubmitted}
+                  />
+                )}
               </CardContent>
             </Card>
           </TabsContent>

@@ -63,7 +63,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data:",
-              "connect-src 'self' https://api.openai.com https://api.edamam.com https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://*.s3.amazonaws.com https://workout-media.s3.ca-central-1.amazonaws.com https://d3rm7f2fy3hn6r.cloudfront.net workout-media.s3.ca-central-1.amazonaws.com https://api.stripe.com https://smtp.resend.com https://api.resend.com https://maps.googleapis.com https://nominatim.openstreetmap.org",
+              "connect-src 'self' https://api.openai.com https://api.edamam.com https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://*.s3.amazonaws.com https://workout-media.s3.ca-central-1.amazonaws.com https://d3rm7f2fy3hn6r.cloudfront.net workout-media.s3.ca-central-1.amazonaws.com https://api.stripe.com https://smtp.resend.com https://api.resend.com https://maps.googleapis.com https://nominatim.openstreetmap.org https://auth.qaifn.co.uk https://api.qaifn.co.uk",
               "media-src 'self' blob: data: https:",
               "worker-src 'self' blob:",
               "frame-src 'self' https://js.stripe.com", // This is the new line for iframes
