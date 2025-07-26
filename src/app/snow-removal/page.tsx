@@ -2,7 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Plus, FileText, Calendar, MapPin, Clock, Filter } from "lucide-react";
+import {
+  Plus,
+  FileText,
+  Calendar,
+  MapPin,
+  Clock,
+  Filter,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -281,7 +290,7 @@ export default function SnowRemovalPage() {
                   <div className="space-y-2">
                     <Label htmlFor="site-filter">Site</Label>
                     <Select value={siteFilter} onValueChange={setSiteFilter}>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -300,7 +309,7 @@ export default function SnowRemovalPage() {
                       value={statusFilter}
                       onValueChange={setStatusFilter}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -344,12 +353,12 @@ export default function SnowRemovalPage() {
                     {filteredReports.map((report) => (
                       <div
                         key={report.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent"
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent gap-4"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="space-y-1">
+                        <div className="flex items-center gap-4 min-w-0 flex-1">
+                          <div className="space-y-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-semibold">
+                              <h3 className="font-semibold truncate">
                                 {report.sites?.name || `Site ${report.site_id}`}
                               </h3>
                               <StatusBadge
@@ -357,7 +366,7 @@ export default function SnowRemovalPage() {
                                 isArchived={false}
                               />
                             </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2 md:gap-4 text-sm text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-4 w-4" />
                                 {format(new Date(report.date), "MMM d, yyyy")}
@@ -368,7 +377,7 @@ export default function SnowRemovalPage() {
                                 {report.finish_time &&
                                   ` - ${report.finish_time}`}
                               </span>
-                              <span className="flex items-center gap-1">
+                              <span className="flex items-center gap-1 truncate">
                                 <MapPin className="h-4 w-4" />
                                 {report.sites?.address || "Unknown address"}
                               </span>
@@ -376,20 +385,24 @@ export default function SnowRemovalPage() {
                           </div>
                         </div>
                         {canEditReports && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 flex-shrink-0">
                             <Button
                               variant="outline"
-                              size="sm"
+                              size="icon"
                               onClick={() => handleEditReport(report)}
+                              title="Edit report"
+                              className="h-7 w-7"
                             >
-                              Edit
+                              <Edit className="h-3 w-3" />
                             </Button>
                             <Button
                               variant="outline"
-                              size="sm"
+                              size="icon"
                               onClick={() => handleDeleteReport(report.id)}
+                              title="Delete report"
+                              className="h-7 w-7"
                             >
-                              Delete
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         )}

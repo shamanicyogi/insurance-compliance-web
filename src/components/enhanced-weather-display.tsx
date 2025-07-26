@@ -130,10 +130,20 @@ export function EnhancedWeatherDisplay({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Thermometer className="h-4 w-4" />
-            <CardTitle>Weather Conditions</CardTitle>
+        <div className="flex items-center gap-2">
+          <Thermometer className="h-4 w-4" />
+          <CardTitle>Weather Conditions</CardTitle>
+        </div>
+        <CardDescription>
+          Automatically retrieved weather data for this location and date.{" "}
+          {confidencePercentage < 80 && (
+            <span className="text-amber-600">
+              (Confidence: {confidencePercentage}%)
+            </span>
+          )}
+        </CardDescription>
+        <div className="flex items-center justify-between pt-2">
+          <div>
             {isFromCache ? (
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
@@ -155,14 +165,6 @@ export function EnhancedWeatherDisplay({
             </button>
           )}
         </div>
-        <CardDescription>
-          Automatically retrieved weather data for this location and date.{" "}
-          {confidencePercentage < 80 && (
-            <span className="text-amber-600">
-              (Confidence: {confidencePercentage}%)
-            </span>
-          )}
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Primary Weather Info */}

@@ -470,7 +470,7 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
                 <Input
@@ -500,7 +500,7 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="truck">Truck</Label>
                 <Input
@@ -543,16 +543,14 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
         {/* Sites Section */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Sites Visited ({fields.length})
-                </CardTitle>
-                <CardDescription>
-                  Add details for each site visited during this shift
-                </CardDescription>
-              </div>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Sites Visited ({fields.length})
+            </CardTitle>
+            <CardDescription>
+              Add details for each site visited during this shift
+            </CardDescription>
+            <div className="pt-2">
               <Button
                 type="button"
                 variant="outline"
@@ -610,7 +608,8 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                 </div>
 
                 <div className="grid gap-4 p-4 border rounded-lg">
-                  <div className="grid gap-4 md:grid-cols-2">
+                  {/* First row: Site, Snow Removal Method, Follow-up Plans */}
+                  <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
                     <div className="space-y-2">
                       <Label>Site</Label>
                       <Controller
@@ -626,11 +625,11 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                             value={field.value}
                           >
                             <SelectTrigger
-                              className={
+                              className={`w-full ${
                                 errors.sites?.[index]?.site_id
                                   ? "border-red-500"
                                   : ""
-                              }
+                              }`}
                             >
                               <SelectValue placeholder="Select a site" />
                             </SelectTrigger>
@@ -649,7 +648,10 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                                   <SelectItem key={site.id} value={site.id}>
                                     <div className="flex items-center justify-between w-full">
                                       <span>{site.name}</span>
-                                      <Badge variant="outline" className="ml-2">
+                                      <Badge
+                                        variant="outline"
+                                        className="ml-2 bg-background text-foreground border-border hover:bg-background hover:text-foreground"
+                                      >
                                         {site.priority}
                                       </Badge>
                                     </div>
@@ -676,7 +678,7 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                             onValueChange={field.onChange}
                             value={field.value}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -694,9 +696,45 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                         )}
                       />
                     </div>
+
+                    <div className="space-y-2">
+                      <Label>Follow-up Plans</Label>
+                      <Controller
+                        name={`sites.${index}.follow_up_plans`}
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="allClear">
+                                All Clear
+                              </SelectItem>
+                              <SelectItem value="activeSnowfall">
+                                Active Snowfall
+                              </SelectItem>
+                              <SelectItem value="monitorConditions">
+                                Monitor Conditions
+                              </SelectItem>
+                              <SelectItem value="returnInHour">
+                                Return in 1 Hour
+                              </SelectItem>
+                              <SelectItem value="callSupervisor">
+                                Call Supervisor
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-3">
+                  {/* Second row: Start Time, Finish Time, (empty) */}
+                  <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
                     <div className="space-y-2">
                       <Label>Start Time</Label>
                       <Input
@@ -723,43 +761,11 @@ export function SnowRemovalForm({ onSubmit, className }: SnowRemovalFormProps) {
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>Follow-up Plans</Label>
-                      <Controller
-                        name={`sites.${index}.follow_up_plans`}
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="allClear">
-                                All Clear
-                              </SelectItem>
-                              <SelectItem value="activeSnowfall">
-                                Active Snowfall
-                              </SelectItem>
-                              <SelectItem value="monitorConditions">
-                                Monitor Conditions
-                              </SelectItem>
-                              <SelectItem value="returnInHour">
-                                Return in 1 Hour
-                              </SelectItem>
-                              <SelectItem value="callSupervisor">
-                                Call Supervisor
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
+                    {/* Empty third column for consistent sizing on desktop */}
+                    <div className="hidden md:block"></div>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
                     <div className="space-y-2">
                       <Label>Salt Used (kg)</Label>
                       <Input

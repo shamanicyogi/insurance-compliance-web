@@ -130,15 +130,15 @@ export default function Home() {
                 </div>
 
                 {/* Floating badges */}
-                <div className="absolute -bottom-4 -left-4 bg-white rounded-lg shadow-lg p-3 border">
-                  <div className="flex items-center gap-2 text-sm font-medium">
+                <div className="absolute -bottom-4 -left-4 bg-background border border-border rounded-lg shadow-lg p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                     <Shield className="h-4 w-4 text-green-500" />
                     <span>Insurance Compliant</span>
                   </div>
                 </div>
 
-                <div className="absolute -top-4 -right-4 bg-white rounded-lg shadow-lg p-3 border">
-                  <div className="flex items-center gap-2 text-sm font-medium">
+                <div className="absolute -top-4 -right-4 bg-background border border-border rounded-lg shadow-lg p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                     <Eye className="h-4 w-4 text-blue-500" />
                     <span>Live Monitoring</span>
                   </div>
